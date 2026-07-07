@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Bot, Users, TrendingUp, Box, Database, 
   Wallet, Activity, Share2, MessageSquare, PieChart, 
   Workflow, FileText, Settings, ChevronLeft, ChevronRight, DollarSign, Briefcase,
-  AlertOctagon, Globe2, Target, Leaf, Video, Zap, ShieldAlert
+  AlertOctagon, Globe2, Target, Leaf, Video, Zap, ShieldAlert, Home, LogOut
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 
 export function Sidebar({ collapsed, setCollapsed }) {
+  const navigate = useNavigate();
+
   const menuCategories = [
     {
       title: "Executive",
@@ -86,9 +88,37 @@ export function Sidebar({ collapsed, setCollapsed }) {
           ))}
         </div>
 
-        {/* Footer / Settings */}
-        <div className="p-3 border-t border-white/5 shrink-0">
+        {/* Footer */}
+        <div className="p-3 border-t border-white/5 shrink-0 flex flex-col gap-1">
           <NavItem item={{ name: "Settings", path: "/app/settings", icon: <Settings size={20} /> }} collapsed={collapsed} />
+          
+          {/* Back to Landing Page Button */}
+          <button
+            onClick={() => navigate('/')}
+            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group w-full text-left text-[#94A3B8] hover:text-white hover:bg-gradient-to-r hover:from-[#10B981]/15 hover:to-transparent border border-transparent hover:border-[#10B981]/20`}
+          >
+            <div className="relative z-10 shrink-0 text-[#10B981] group-hover:text-[#10B981]">
+              <Home size={20} />
+            </div>
+            <AnimatePresence>
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="font-medium text-sm whitespace-nowrap overflow-hidden relative z-10 text-[#10B981]"
+                >
+                  Back to Home
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {/* Tooltip in collapsed mode */}
+            {collapsed && (
+              <div className="absolute left-16 bg-[#0B1120] border border-[#10B981]/30 text-[#10B981] text-xs font-bold px-3 py-2 rounded-lg whitespace-nowrap shadow-[0_0_20px_rgba(16,185,129,0.3)] z-[100] opacity-0 group-hover:opacity-100 transition-opacity">
+                Back to Home
+              </div>
+            )}
+          </button>
         </div>
       </motion.aside>
 
@@ -109,6 +139,7 @@ function NavItem({ item, collapsed }) {
   return (
     <NavLink
       to={item.path}
+      end={item.path === '/app'}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={({ isActive }) => `
