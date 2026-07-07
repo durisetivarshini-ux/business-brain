@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Filter, MoreVertical } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
+import { toast } from 'react-hot-toast';
 
 export function UserManagement() {
   const users = [
@@ -25,13 +26,20 @@ export function UserManagement() {
           />
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <button className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-bold flex items-center gap-2 hover:bg-white/10 transition-colors">
+          <button 
+            onClick={() => toast('Advanced filtering coming soon.', { icon: '🔍' })}
+            className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-bold flex items-center gap-2 hover:bg-white/10 transition-colors"
+          >
             <Filter size={14} /> Filter
           </button>
-          <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF] text-white text-sm font-bold transition-transform hover:scale-[1.02] shadow-[0_0_15px_rgba(91,95,255,0.3)]">
+          <button 
+            onClick={() => toast.success('Invite link copied to clipboard!')}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF] text-white text-sm font-bold transition-transform hover:scale-[1.02] shadow-[0_0_15px_rgba(91,95,255,0.3)]"
+          >
             + Invite User
           </button>
         </div>
+
       </div>
 
       {/* Table Content */}
@@ -73,10 +81,14 @@ export function UserManagement() {
                   </div>
                 </td>
                 <td className="p-4 text-right">
-                  <button className="text-[#94A3B8] hover:text-white transition-colors">
+                  <button 
+                    onClick={() => toast('User settings opened.')}
+                    className="text-[#94A3B8] hover:text-white transition-colors"
+                  >
                     <MoreVertical size={16} />
                   </button>
                 </td>
+
               </tr>
             ))}
           </tbody>

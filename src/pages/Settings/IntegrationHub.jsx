@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
+import { toast } from 'react-hot-toast';
 
 export function IntegrationHub() {
   const integrations = [
@@ -44,9 +45,13 @@ export function IntegrationHub() {
             <h3 className="text-white font-bold text-lg mb-2">{integration.name}</h3>
             <p className="text-[#94A3B8] text-sm leading-relaxed mb-6 flex-1">{integration.desc}</p>
             
-            <button className={`w-full py-2.5 rounded-lg text-sm font-bold border transition-colors ${integration.connected ? 'bg-white/5 border-white/10 text-white hover:bg-[#EF4444]/20 hover:border-[#EF4444]/50 hover:text-[#EF4444]' : 'bg-[#5B5FFF] border-[#5B5FFF] text-white hover:bg-[#4F54E6]'}`}>
+            <button 
+              onClick={() => toast.success(integration.connected ? `${integration.name} settings opened.` : `${integration.name} integration request sent!`)}
+              className={`w-full py-2.5 rounded-lg text-sm font-bold border transition-colors ${integration.connected ? 'bg-white/5 border-white/10 text-white hover:bg-[#EF4444]/20 hover:border-[#EF4444]/50 hover:text-[#EF4444]' : 'bg-[#5B5FFF] border-[#5B5FFF] text-white hover:bg-[#4F54E6]'}`}
+            >
               {integration.connected ? 'Configure' : 'Connect'}
             </button>
+
           </GlassCard>
         </motion.div>
       ))}
