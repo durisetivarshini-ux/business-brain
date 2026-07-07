@@ -386,8 +386,20 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSsoEmail('varshini@businessbrain.ai');
-                      setSsoName('Varshini');
+                      const name = 'Varshini';
+                      const email = 'varshini@businessbrain.ai';
+                      const avatarUrl = ssoType === 'google' 
+                        ? `https://api.dicebear.com/7.x/initials/svg?seed=${name}&backgroundColor=4285f4` 
+                        : `https://api.dicebear.com/7.x/initials/svg?seed=${name}&backgroundColor=00a4ef`;
+
+                      enterDashboard({
+                        name,
+                        email,
+                        role: ssoType === 'google' ? 'Google Account' : 'Microsoft Account',
+                        avatarUrl,
+                      });
+                      toast.success(`Welcome, ${name}! Signed in via ${ssoType === 'google' ? 'Google' : 'Microsoft'} SSO.`);
+                      setSsoType(null);
                     }}
                     className="w-full p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/5 hover:border-white/10 text-left transition-colors flex items-center gap-3"
                   >
@@ -403,8 +415,20 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSsoEmail('ceo@businessbrain.ai');
-                      setSsoName('Alex Mercer');
+                      const name = 'Alex Mercer';
+                      const email = 'ceo@businessbrain.ai';
+                      const avatarUrl = ssoType === 'google' 
+                        ? `https://api.dicebear.com/7.x/initials/svg?seed=${name}&backgroundColor=4285f4` 
+                        : `https://api.dicebear.com/7.x/initials/svg?seed=${name}&backgroundColor=00a4ef`;
+
+                      enterDashboard({
+                        name,
+                        email,
+                        role: ssoType === 'google' ? 'Google Account' : 'Microsoft Account',
+                        avatarUrl,
+                      });
+                      toast.success(`Welcome, ${name}! Signed in via ${ssoType === 'google' ? 'Google' : 'Microsoft'} SSO.`);
+                      setSsoType(null);
                     }}
                     className="w-full p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/5 hover:border-white/10 text-left transition-colors flex items-center gap-3"
                   >
