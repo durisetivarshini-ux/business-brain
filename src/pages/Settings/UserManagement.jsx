@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Filter, MoreVertical, Loader2 } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Search, Filter, MoreVertical, Loader2, Edit, Key, Ban, Trash2 } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function UserManagement() {
   const [users, setUsers] = useState([
+
     { id: 1, name: "Alex Jenkins", role: "Super Admin", dept: "Executive", email: "alex.j@businessbrain.ai", status: "Active" },
     { id: 2, name: "Sarah Connor", role: "Admin", dept: "Operations", email: "sarah.c@businessbrain.ai", status: "Active" },
     { id: 3, name: "David Chen", role: "Manager", dept: "Finance", email: "david.c@businessbrain.ai", status: "Active" },
@@ -14,8 +16,21 @@ export function UserManagement() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isInviting, setIsInviting] = useState(false);
+  const [openActionId, setOpenActionId] = useState(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.action-dropdown-container')) {
+        setOpenActionId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const filteredUsers = useMemo(() => {
+
     if (!searchQuery) return users;
     const q = searchQuery.toLowerCase();
     return users.filter(u => 
@@ -127,13 +142,43 @@ export function UserManagement() {
                 </td>
 
                 <td className="p-4 text-right">
-                  <button 
-                    onClick={() => toast('User settings opened.')}
-                    className="text-[#94A3B8] hover:text-white transition-colors"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
+                  <div className="relative inline-block text-left action-dropdown-container">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setOpenActionId(openActionId === user.id ? null : user.id); }}
+                      className={`p-2 rounded-lg transition-colors ${openActionId === user.id ? 'bg-white/10 text-white' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    <AnimatePresence>
+                      {openActionId === user.id && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ duration: 0.1 }}
+                          className="absolute right-0 mt-2 w-48 bg-[#0B1120] border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] overflow-hidden z-50 origin-top-right"
+                        >
+                          <div className="py-1">
+                            <button onClick={() => { toast('Edit role opened'); setOpenActionId(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 transition-colors">
+                              <Edit size={14} /> Edit Role
+                            </button>
+                            <button onClick={() => { toast('Password reset link sent'); setOpenActionId(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 transition-colors">
+                              <Key size={14} /> Reset Password
+                            </button>
+                            <button onClick={() => { toast.success(`User ${user.status === 'Active' ? 'Deactivated' : 'Activated'}`); setOpenActionId(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#F59E0B] hover:bg-[#F59E0B]/10 transition-colors">
+                              <Ban size={14} /> {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button onClick={() => { setUsers(users.filter(u => u.id !== user.id)); toast.success('User deleted'); setOpenActionId(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
+                              <Trash2 size={14} /> Delete User
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </td>
+
 
               </tr>
             ))}

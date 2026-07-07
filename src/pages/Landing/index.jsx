@@ -176,44 +176,72 @@ export function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
             
             {/* Pro Plan */}
-            <GlassCard className="p-10 border-white/10 bg-[#0B1120]/60 flex flex-col">
-              <h3 className="text-xl font-bold text-[#94A3B8] uppercase tracking-widest mb-2">Professional</h3>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-display font-bold text-white">$499</span>
-                <span className="text-[#94A3B8]">/month</span>
-              </div>
-              <p className="text-[#94A3B8] mb-8 pb-8 border-b border-white/5">Perfect for scaling startups and mid-size companies.</p>
-              <ul className="space-y-4 mb-10 flex-1">
-                {['All Core Modules', 'Basic AI Copilot', '100gb Storage', 'Standard Support'].map(item => (
-                  <li key={item} className="flex items-center gap-3 text-white">
-                    <span className="text-[#00D4FF]">•</span> {item}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/login" className="w-full py-4 rounded-xl border border-white/10 text-center font-bold text-white hover:bg-white/5 transition-colors">
-                Start Trial
-              </Link>
-            </GlassCard>
+            <motion.div 
+              whileHover={{ y: -10 }} 
+              className="relative group h-full"
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
+              <GlassCard className="p-10 border-white/10 bg-[#0B1120]/60 flex flex-col h-full relative overflow-hidden backdrop-blur-2xl transition-all duration-500 group-hover:border-white/20 group-hover:shadow-[0_20px_60px_rgba(255,255,255,0.05)]">
+                <h3 className="text-xl font-bold text-[#94A3B8] uppercase tracking-widest mb-2">Professional</h3>
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-6xl font-display font-extrabold text-white">$499</span>
+                  <span className="text-[#94A3B8] font-bold">/month</span>
+                </div>
+                <p className="text-[#94A3B8] mb-8 pb-8 border-b border-white/5">Perfect for scaling startups and mid-size companies looking to supercharge their workflows.</p>
+                <ul className="space-y-5 mb-10 flex-1">
+                  {['All Core Modules (CRM, ERP, HR)', 'Basic AI Copilot Access', '100gb Secure Storage', 'Standard 24/5 Support', '5 Team Members'].map(item => (
+                    <li key={item} className="flex items-center gap-4 text-white font-medium">
+                      <div className="w-5 h-5 rounded-full bg-[#00D4FF]/20 flex items-center justify-center shrink-0">
+                        <span className="text-[#00D4FF] text-xs">✓</span>
+                      </div>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/login" className="w-full py-4 rounded-xl border border-white/20 text-center font-bold text-white hover:bg-white hover:text-black transition-all duration-300">
+                  Start Trial
+                </Link>
+              </GlassCard>
+            </motion.div>
 
             {/* Enterprise Plan */}
-            <GlassCard className="p-10 border-[#5B5FFF]/30 bg-gradient-to-b from-[#5B5FFF]/10 to-transparent flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]" />
-              <h3 className="text-xl font-bold text-white uppercase tracking-widest mb-2">Enterprise</h3>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-display font-bold text-white">Custom</span>
-              </div>
-              <p className="text-[#94A3B8] mb-8 pb-8 border-b border-white/5">For large corporations requiring dedicated instances.</p>
-              <ul className="space-y-4 mb-10 flex-1">
-                {['Unlimited Modules', 'Advanced Predictive AI', 'Dedicated Secure Enclave', '24/7 Priority Support', 'Custom Integrations'].map(item => (
-                  <li key={item} className="flex items-center gap-3 text-white">
-                    <span className="text-[#5B5FFF]">•</span> {item}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/login" className="w-full py-4 rounded-xl bg-white text-black text-center font-bold hover:scale-[1.02] transition-transform">
-                Contact Sales
-              </Link>
-            </GlassCard>
+            <motion.div 
+              whileHover={{ y: -10 }} 
+              className="relative group h-full"
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-[#5B5FFF]/30 to-[#00D4FF]/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
+              <GlassCard className="p-10 border-[#5B5FFF]/40 bg-gradient-to-b from-[#5B5FFF]/10 to-transparent flex flex-col h-full relative overflow-hidden backdrop-blur-2xl transition-all duration-500 group-hover:shadow-[0_20px_80px_rgba(91,95,255,0.25)]">
+                {/* Highlight Top Bar */}
+                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#5B5FFF] via-[#7C3AED] to-[#00D4FF]" />
+                
+                {/* Glow Effect */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#5B5FFF]/20 blur-[50px] rounded-full pointer-events-none" />
+
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#5B5FFF]/20 text-[#5B5FFF] text-xs font-bold uppercase tracking-widest mb-6 w-fit border border-[#5B5FFF]/30">
+                  Most Popular
+                </div>
+                
+                <h3 className="text-xl font-bold text-white uppercase tracking-widest mb-2">Enterprise</h3>
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-6xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">Custom</span>
+                </div>
+                <p className="text-[#94A3B8] mb-8 pb-8 border-b border-white/5 text-lg">For large corporations requiring dedicated infrastructure and extreme scale.</p>
+                <ul className="space-y-5 mb-10 flex-1 relative z-10">
+                  {['Unlimited Modules & Users', 'Advanced Predictive AI', 'Dedicated Secure Enclave (Single Tenant)', '24/7 Priority Support & SLA', 'Custom API Integrations'].map(item => (
+                    <li key={item} className="flex items-start gap-4 text-white font-medium">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#5B5FFF] to-[#7C3AED] flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/login" className="relative z-10 w-full py-4 rounded-xl bg-gradient-to-r from-white to-gray-200 text-black text-center font-bold hover:scale-[1.03] hover:shadow-[0_10px_30px_rgba(255,255,255,0.2)] transition-all duration-300">
+                  Contact Sales
+                </Link>
+              </GlassCard>
+            </motion.div>
+
 
           </div>
         </div>
