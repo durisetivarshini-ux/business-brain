@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Bot, ArrowRight, Activity, Zap, Shield, Cpu, Layers, Globe } from 'lucide-react';
 import { Logo } from '../../components/common/Logo';
 import { GlassCard } from '../../components/ui/GlassCard';
+import { TiltDashboardPreview } from '../../components/ui/TiltDashboardPreview';
 
 export function LandingPage() {
   const { scrollYProgress } = useScroll();
@@ -26,7 +27,6 @@ export function LandingPage() {
         
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-[#94A3B8]">
           <a href="#platform" className="hover:text-white transition-colors">Platform</a>
-          <a href="#solutions" className="hover:text-white transition-colors">Solutions</a>
           <a href="#enterprise" className="hover:text-white transition-colors">Enterprise</a>
           <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
         </div>
@@ -83,42 +83,10 @@ export function LandingPage() {
           </div>
         </motion.div>
 
-        {/* Floating 3D Visualization Placeholder */}
-        <motion.div 
-          style={{ y }}
-          className="w-full max-w-6xl mt-20 relative z-20"
-        >
-          <div className="w-full aspect-video rounded-3xl border border-white/10 bg-gradient-to-b from-[#0B1120] to-[#050816] shadow-2xl relative overflow-hidden flex items-center justify-center p-8">
-            
-            {/* Dashboard Abstract Preview */}
-            <div className="w-full h-full border border-white/5 rounded-xl bg-[#050816]/80 flex flex-col relative overflow-hidden backdrop-blur-md">
-              <div className="h-10 border-b border-white/5 flex items-center px-4 gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                <div className="w-3 h-3 rounded-full bg-green-500/50" />
-              </div>
-              <div className="flex-1 flex p-6 gap-6">
-                {/* Side */}
-                <div className="w-48 hidden md:flex flex-col gap-3">
-                  {[1,2,3,4,5].map(i => <div key={i} className="h-8 bg-white/5 rounded-lg w-full" />)}
-                </div>
-                {/* Main */}
-                <div className="flex-1 flex flex-col gap-6">
-                  <div className="h-32 bg-gradient-to-r from-[#5B5FFF]/20 to-[#00D4FF]/20 rounded-xl border border-white/10 p-6 flex flex-col justify-end">
-                    <div className="h-4 w-1/3 bg-white/20 rounded mb-2" />
-                    <div className="h-8 w-1/2 bg-white/40 rounded" />
-                  </div>
-                  <div className="flex-1 flex gap-6">
-                    <div className="flex-[2] bg-white/5 rounded-xl border border-white/5" />
-                    <div className="flex-[1] bg-white/5 rounded-xl border border-white/5" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-transparent to-transparent pointer-events-none" />
-          </div>
-        </motion.div>
+        {/* Floating 3D Visualization */}
+        <div className="w-full relative z-20">
+          <TiltDashboardPreview />
+        </div>
       </section>
 
       {/* -------------------------------------------------------- */}
