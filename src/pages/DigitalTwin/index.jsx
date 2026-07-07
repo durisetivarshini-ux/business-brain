@@ -367,36 +367,38 @@ export function DigitalTwinPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              className="relative rounded-2xl p-5 border border-white/8 overflow-hidden group cursor-default hover:border-white/15 transition-all"
+              className="relative rounded-2xl border border-white/8 group cursor-default hover:border-white/20 transition-all"
               style={{ background: 'linear-gradient(145deg, #0c1225 0%, #070c1b 100%)' }}
             >
-              {/* Glow on hover */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{ background: `radial-gradient(ellipse at 50% 0%, ${kpi.color}18 0%, transparent 70%)` }} />
+              {/* Top color strip */}
+              <div className="h-1 rounded-t-2xl w-full"
+                style={{ background: `linear-gradient(90deg, ${kpi.color}, ${kpi.color}30, transparent)` }} />
 
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: `${kpi.color}15`, border: `1px solid ${kpi.color}30` }}>
-                  <Icon size={15} style={{ color: kpi.color }} />
+              {/* Hover glow */}
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{ background: `radial-gradient(ellipse at 50% 0%, ${kpi.color}12 0%, transparent 65%)` }} />
+
+              <div className="p-4 relative z-10">
+                {/* Icon + badge */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${kpi.color}18`, border: `1px solid ${kpi.color}35` }}>
+                    <Icon size={16} style={{ color: kpi.color }} />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                    style={{ backgroundColor: `${kpi.color}18`, color: kpi.color }}>
+                    {kpi.change}
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${kpi.color}15`, color: kpi.color }}>
-                  {kpi.change}
-                </span>
+
+                {/* Value — full white, no clip */}
+                <p className="text-2xl font-black text-white leading-none mb-2">
+                  {kpi.value}
+                </p>
+                <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: `${kpi.color}99` }}>
+                  {kpi.label}
+                </p>
               </div>
-              <p className="text-xl font-black text-white mb-0.5 group-hover:text-transparent group-hover:bg-clip-text transition-all duration-300"
-                style={{ backgroundImage: `linear-gradient(135deg, white 0%, ${kpi.color} 100%)` }}>
-                {kpi.value}
-              </p>
-              <p className="text-[10px] text-[#64748B] uppercase tracking-wider font-bold">{kpi.label}</p>
-              {/* Bottom accent line */}
-              <motion.div
-                className="absolute bottom-0 left-0 h-0.5 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: '100%' }}
-                transition={{ duration: 1.2, delay: i * 0.1 }}
-                style={{ background: `linear-gradient(90deg, ${kpi.color}, transparent)` }}
-              />
             </motion.div>
           );
         })}
