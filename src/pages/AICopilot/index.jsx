@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, FileText, TrendingUp, Share2, Box, Wallet, Users, LayoutDashboard, PieChart, Bookmark, Clock, Star, Sparkles, Send, X, Bot } from 'lucide-react';
+import {
+  Plus, FileText, TrendingUp, Share2, Box, Wallet, Users, LayoutDashboard,
+  PieChart, Bookmark, Clock, Star, Sparkles, Send, X, Bot, Mic,
+  ChevronRight, Trash2, Copy
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GrowthRecommendations } from './GrowthRecommendations';
 import { AIAnalyticsPanel } from './AIAnalyticsPanel';
@@ -11,6 +15,28 @@ import { FileUpload } from './FileUpload';
 import { VoiceInput } from './VoiceInput';
 import { toast } from 'react-hot-toast';
 
+// ── Saved Prompt Library ──────────────────────────────────────────────
+const SAVED_PROMPTS_LIBRARY = [
+  { id: 'sp1', label: 'Revenue Analysis', category: 'Finance', text: 'Analyze our current revenue trends and provide key insights on Q3 performance, growth opportunities, and risk areas.' },
+  { id: 'sp2', label: 'Marketing Report', category: 'Marketing', text: 'Review our current marketing performance. What campaigns are performing best? What should we optimize for Q4?' },
+  { id: 'sp3', label: 'Inventory Status', category: 'Operations', text: 'Give me an inventory analysis. Which products are critically low, overstocked, and what should our reorder priorities be?' },
+  { id: 'sp4', label: 'Financial Summary', category: 'Finance', text: 'Provide a financial health summary including cash flow status, outstanding receivables, and budget variance.' },
+  { id: 'sp5', label: 'HR Workforce Metrics', category: 'HR', text: 'Analyze our workforce metrics: attrition risk, upcoming performance reviews, and hiring pipeline status.' },
+  { id: 'sp6', label: 'CRM Pipeline', category: 'Sales', text: 'Summarize CRM pipeline: top opportunities, at-risk accounts, and recommended actions for the sales team.' },
+  { id: 'sp7', label: 'Deep Business Analysis', category: 'Executive', text: 'Perform a deep analysis of all business units. Include revenue trends, operational risks, HR sentiment, and strategic recommendations for the next quarter.' },
+  { id: 'sp8', label: 'Competitor Intelligence', category: 'Strategy', text: 'Summarize the competitive landscape for our industry. Who are our top competitors and what strategic advantages do we hold?' },
+];
+
+const CATEGORY_COLORS = {
+  Finance: '#10B981',
+  Marketing: '#EC4899',
+  Operations: '#F59E0B',
+  HR: '#8B5CF6',
+  Sales: '#00D4FF',
+  Executive: '#5B5FFF',
+  Strategy: '#EF4444',
+};
+
 const SIDEBAR_PROMPTS = {
   'Revenue Analysis': 'Analyze our current revenue trends and provide key insights on Q3 performance, growth opportunities, and risk areas.',
   'Marketing': 'Review our current marketing performance. What campaigns are performing best? What should we optimize for Q4?',
@@ -19,17 +45,159 @@ const SIDEBAR_PROMPTS = {
   'HR': 'Analyze our workforce metrics: attrition risk, upcoming performance reviews, and hiring pipeline status.',
   'CRM': 'Summarize CRM pipeline: top opportunities, at-risk accounts, and recommended actions for the sales team.',
   'Analytics': 'Generate a business intelligence report summarizing key KPIs across all departments.',
-  'Saved Prompts': 'Show me a list of high-value prompts for enterprise analysis and business decision-making.',
-  'History': 'What were the key topics and decisions from our recent AI Copilot conversations?',
-  'Favorites': 'Show me the most useful recurring business analysis templates.',
 };
 
+// ── Saved Prompts Panel ───────────────────────────────────────────────
+function SavedPromptsPanel({ onUsePrompt, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="w-full max-w-lg bg-[#0B1120] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden max-h-[80vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#5B5FFF]/10 to-[#7C3AED]/10 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5B5FFF] to-[#7C3AED] flex items-center justify-center">
+              <Bookmark size={18} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Saved Prompts</h2>
+              <p className="text-xs text-[#94A3B8]">Click any prompt to use it instantly</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Prompts List */}
+        <div className="overflow-y-auto custom-scrollbar p-4 space-y-2 flex-1">
+          {SAVED_PROMPTS_LIBRARY.map((prompt) => {
+            const color = CATEGORY_COLORS[prompt.category] || '#94A3B8';
+            return (
+              <motion.button
+                key={prompt.id}
+                whileHover={{ x: 4 }}
+                onClick={() => { onUsePrompt(prompt.text); onClose(); }}
+                className="w-full text-left p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/15 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-bold text-white">{prompt.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${color}20`, color }}>
+                      {prompt.category}
+                    </span>
+                    <ChevronRight size={14} className="text-[#94A3B8] group-hover:text-white transition-colors" />
+                  </div>
+                </div>
+                <p className="text-xs text-[#94A3B8] line-clamp-2 leading-relaxed">{prompt.text}</p>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── History Panel ─────────────────────────────────────────────────────
+function HistoryPanel({ history, onLoadSession, onDeleteSession, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="w-full max-w-lg bg-[#0B1120] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden max-h-[80vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#00D4FF]/10 to-[#5B5FFF]/10 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-[#5B5FFF] flex items-center justify-center">
+              <Clock size={18} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Chat History</h2>
+              <p className="text-xs text-[#94A3B8]">{history.length} saved conversation{history.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* History List */}
+        <div className="overflow-y-auto custom-scrollbar p-4 space-y-2 flex-1">
+          {history.length === 0 ? (
+            <div className="text-center py-16">
+              <Clock size={32} className="text-[#94A3B8]/50 mx-auto mb-3" />
+              <p className="text-sm font-bold text-[#94A3B8]">No chat history yet</p>
+              <p className="text-xs text-[#94A3B8]/60 mt-1">Previous conversations will appear here</p>
+            </div>
+          ) : (
+            history.map((session) => (
+              <div key={session.id} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/15 transition-all group">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{session.title}</p>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">{session.date} · {session.messageCount} messages</p>
+                    <p className="text-xs text-[#94A3B8]/70 mt-1 line-clamp-1 italic">"{session.preview}"</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => { onLoadSession(session); onClose(); }}
+                      className="p-1.5 rounded-lg bg-[#5B5FFF]/20 text-[#5B5FFF] hover:bg-[#5B5FFF]/30 transition-colors"
+                      title="Restore session"
+                    >
+                      <Copy size={13} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteSession(session.id)}
+                      className="p-1.5 rounded-lg bg-[#EF4444]/20 text-[#EF4444] hover:bg-[#EF4444]/30 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Main Copilot Page ─────────────────────────────────────────────────
 export function CopilotPage() {
   const [tab, setTab] = useState('chat');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [chatKey, setChatKey] = useState(0); // increment to reset chat
+  const [chatKey, setChatKey] = useState(0);
+  const [showSavedPrompts, setShowSavedPrompts] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]); // list of {id, title, date, messageCount, preview, messages}
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -38,11 +206,38 @@ export function CopilotPage() {
     }
   }, [messages, isTyping]);
 
+  const saveCurrentToHistory = (msgs) => {
+    if (msgs.length < 2) return; // only save real conversations
+    const firstUserMsg = msgs.find(m => m.role === 'user')?.content || 'Untitled';
+    const title = firstUserMsg.length > 45 ? firstUserMsg.slice(0, 45) + '…' : firstUserMsg;
+    const session = {
+      id: Date.now().toString(),
+      title,
+      date: new Date().toLocaleString(),
+      messageCount: msgs.length,
+      preview: msgs[msgs.length - 1]?.content?.slice(0, 80) || '',
+      messages: msgs,
+    };
+    setChatHistory(prev => [session, ...prev.slice(0, 19)]); // keep max 20
+  };
+
   const handleNewChat = () => {
+    saveCurrentToHistory(messages);
     setMessages([]);
     setInputValue('');
     setChatKey(k => k + 1);
     toast.success('New chat started!', { icon: '✨' });
+  };
+
+  const handleLoadSession = (session) => {
+    setMessages(session.messages);
+    setChatKey(k => k + 1);
+    toast.success(`Restored: "${session.title.slice(0, 30)}"`, { icon: '🔁' });
+  };
+
+  const handleDeleteSession = (id) => {
+    setChatHistory(prev => prev.filter(s => s.id !== id));
+    toast.success('Session deleted');
   };
 
   const handleSidebarItemClick = (itemName) => {
@@ -78,6 +273,8 @@ export function CopilotPage() {
             aiResponse.content = `### Marketing Performance\n\n**Top Campaigns:**\n| Campaign | ROI | Leads |\n|---|---|---|\n| Alpha Series | 340% | 1,240 |\n| Webinar Q3 | 210% | 890 |\n\n**Q4 Recommendation:** Double budget on Alpha Series and launch a targeted ABM campaign for Enterprise prospects.`;
           } else if (lowerText.includes('finance') || lowerText.includes('cash')) {
             aiResponse.content = `### Financial Summary\n\n- **Cash Position:** $8.2M (healthy)\n- **AR Outstanding:** $1.4M (avg 34 days)\n- **Budget Variance:** -3% (within tolerance)\n\n**Alert:** 2 invoices overdue by 60+ days — initiate collections process.`;
+          } else if (lowerText.includes('competitor') || lowerText.includes('strategy')) {
+            aiResponse.content = `### Competitive Intelligence\n\n**Top Competitors:**\n| Company | Market Share | Strengths |\n|---|---|---|\n| Acme Corp | 32% | Price leadership |\n| NovaTech | 18% | Platform breadth |\n\n**Our Advantages:** AI-native architecture, enterprise integrations, real-time analytics.`;
           } else {
             aiResponse.content = `I've analyzed the data across all business units.\n\n**Summary:**\n- Revenue is healthy, tracking **+14% YoY**\n- Marketing ROI improved by **+4%** this month\n- No critical operational risks detected\n\n**Next Steps:** Would you like me to generate a specific forecast, executive report, or drill into a particular department?\n\n> *Tip: Add your Gemini API key (\`VITE_GEMINI_API_KEY\`) to enable real AI responses.*`;
           }
@@ -138,9 +335,9 @@ export function CopilotPage() {
     {
       title: 'AI Memory',
       items: [
-        { name: 'Saved Prompts', icon: <Bookmark size={16}/> },
-        { name: 'History', icon: <Clock size={16}/> },
-        { name: 'Favorites', icon: <Star size={16}/> },
+        { name: 'Saved Prompts', icon: <Bookmark size={16}/>, action: () => setShowSavedPrompts(true) },
+        { name: 'History', icon: <Clock size={16}/>, action: () => setShowHistory(true) },
+        { name: 'Favorites', icon: <Star size={16}/>, action: () => setShowSavedPrompts(true) },
       ]
     }
   ];
@@ -182,19 +379,25 @@ export function CopilotPage() {
                 <div key={i}>
                   <h4 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-3 pl-2 flex items-center gap-2">
                     {section.title === 'Business Reports' ? <FileText size={14}/> : null}
+                    {section.title === 'AI Memory' ? <Bookmark size={14}/> : null}
                     {section.title}
                   </h4>
                   <div className="space-y-1">
                     {section.items.map((item, j) => (
                       <button
                         key={j}
-                        onClick={() => handleSidebarItemClick(item.name)}
+                        onClick={() => item.action ? item.action() : handleSidebarItemClick(item.name)}
                         className="functional-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[#F8FAFC] hover:bg-white/10 transition-all text-left group border border-transparent hover:border-white/5"
                       >
                         <div className="text-[#94A3B8] group-hover:text-[#00D4FF] transition-colors shrink-0">
                           {item.icon}
                         </div>
                         <span className="truncate flex-1 font-medium">{item.name}</span>
+                        {item.name === 'History' && chatHistory.length > 0 && (
+                          <span className="text-[10px] font-bold bg-[#5B5FFF]/30 text-[#5B5FFF] px-1.5 py-0.5 rounded-full shrink-0">
+                            {chatHistory.length}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -263,8 +466,10 @@ export function CopilotPage() {
                 <div className="flex items-center justify-between px-2 pb-1 relative z-10">
                   <div className="flex items-center gap-2">
                     <FileUpload />
-                    <VoiceInput />
-                    <button className="functional-btn hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5B5FFF]/10 text-[#5B5FFF] hover:bg-[#5B5FFF]/20 border border-[#5B5FFF]/20 transition-colors text-xs font-bold"
+                    {/* VoiceInput wired to paste transcript into textarea */}
+                    <VoiceInput onTranscript={(t) => setInputValue(prev => prev ? prev + ' ' + t : t)} />
+                    <button
+                      className="functional-btn hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5B5FFF]/10 text-[#5B5FFF] hover:bg-[#5B5FFF]/20 border border-[#5B5FFF]/20 transition-colors text-xs font-bold"
                       onClick={() => {
                         setInputValue('Perform a deep analysis of all business units. Include revenue trends, operational risks, HR sentiment, and strategic recommendations for the next quarter.');
                       }}
@@ -293,6 +498,24 @@ export function CopilotPage() {
       ) : (
         <GrowthRecommendations />
       )}
+
+      {/* Modals */}
+      <AnimatePresence>
+        {showSavedPrompts && (
+          <SavedPromptsPanel
+            onUsePrompt={(text) => { setInputValue(text); toast.success('Prompt loaded!', { icon: '📌' }); }}
+            onClose={() => setShowSavedPrompts(false)}
+          />
+        )}
+        {showHistory && (
+          <HistoryPanel
+            history={chatHistory}
+            onLoadSession={handleLoadSession}
+            onDeleteSession={handleDeleteSession}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
