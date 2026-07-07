@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Video, Upload, FileText, CheckSquare, Calendar, Users, Zap, Clock, ChevronRight, Mic, MessageCircle } from 'lucide-react';
+import { Video, Upload, FileText, CheckSquare, Calendar, Users, Zap, Clock, ChevronRight, Mic, MessageCircle, Download, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+
 
 const meetings = [
   {
@@ -62,10 +63,54 @@ const meetings = [
 export function MeetingsPage() {
   const [selectedMeeting, setSelectedMeeting] = useState(meetings[0]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportReport = () => {
+    setExporting(true);
+    setTimeout(() => {
+      const m = selectedMeeting;
+      const text = [
+        `MEETING INTELLIGENCE REPORT`,
+        `Generated: ${new Date().toLocaleString()}`,
+        `${'─'.repeat(60)}`,
+        ``,
+        `MEETING: ${m.title}`,
+        `DATE: ${m.date}   DURATION: ${m.duration}   ATTENDEES: ${m.attendees}`,
+        `NEXT MEETING: ${m.nextMeeting}`,
+        ``,
+        `EXECUTIVE SUMMARY`,
+        `─────────────────`,
+        m.summary,
+        ``,
+        `KEY DECISIONS`,
+        `─────────────`,
+        ...m.decisions.map((d, i) => `${i + 1}. ${d}`),
+        ``,
+        `ASSIGNED TASKS`,
+        `──────────────`,
+        ...m.tasks.map(t => `• ${t.assignee} — ${t.task} [Due: ${t.due}]`),
+        ``,
+        `${'─'.repeat(60)}`,
+        `© ${new Date().getFullYear()} Business Brain Inc. All rights reserved.`,
+      ].join('\n');
+
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Meeting_Report_${m.title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setExporting(false);
+      toast.success(`Report for "${m.title}" exported! 📄`);
+    }, 1000);
+  };
 
   return (
     <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10 pb-10">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -75,16 +120,24 @@ export function MeetingsPage() {
             </div>
             AI Meeting Intelligence
           </h1>
-          <p className="text-[#94A3B8] font-medium">Upload transcripts to auto-generate summaries, action items & decisions.</p>
+          <p className="text-[#94A3B8] font-medium">Upload transcripts to auto-generate summaries, action items &amp; decisions.</p>
         </div>
-        <label
-          className="self-start md:self-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white text-sm font-bold shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:scale-[1.02] transition-transform flex items-center gap-2 cursor-pointer"
-        >
-          <Upload size={16} /> Upload Transcript
-          <input type="file" className="hidden" accept=".txt,.vtt,.srt" onChange={(e) => {
-            if(e.target.files.length) toast.success(`Processing ${e.target.files[0].name}...`, { icon: '🚀' })
-          }} />
-        </label>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportReport}
+            disabled={exporting}
+            className="functional-btn self-start md:self-auto px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {exporting ? 'Exporting…' : 'Export Report'}
+          </button>
+          <label className="self-start md:self-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white text-sm font-bold shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:scale-[1.02] transition-transform flex items-center gap-2 cursor-pointer">
+            <Upload size={16} /> Upload Transcript
+            <input type="file" className="hidden" accept=".txt,.vtt,.srt" onChange={(e) => {
+              if(e.target.files.length) toast.success(`Processing ${e.target.files[0].name}...`, { icon: '🚀' })
+            }} />
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
