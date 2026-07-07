@@ -33,10 +33,14 @@ function IDCardModal({ isOpen, onClose, user }) {
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] rounded-full blur-[8px] opacity-80" />
-                <div className="w-20 h-20 rounded-full border-2 border-white/20 bg-gradient-to-tr from-[#0B1120] to-[#1A2235] relative z-10 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">
-                    {user.name.charAt(0)}
-                  </span>
+                <div className="w-20 h-20 rounded-full border-2 border-white/20 bg-gradient-to-tr from-[#0B1120] to-[#1A2235] relative z-10 flex items-center justify-center overflow-hidden">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">
+                      {user.name?.charAt(0)}
+                    </span>
+                  )}
                 </div>
               </div>
               {/* Info */}
@@ -114,8 +118,12 @@ function ShareModal({ isOpen, onClose, user }) {
           </div>
           <div className="p-6 space-y-5">
             <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] flex items-center justify-center font-bold text-white text-xl">
-                {user.name.charAt(0)}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] flex items-center justify-center font-bold text-white text-xl overflow-hidden shrink-0">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user.name?.charAt(0)
+                )}
               </div>
               <div>
                 <p className="font-bold text-white">{user.name}</p>
@@ -213,9 +221,13 @@ export function ProfileHeader() {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] rounded-full blur-[10px] opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-[#050816] bg-gradient-to-tr from-[#0B1120] to-[#1A2235] relative z-10 flex items-center justify-center overflow-hidden">
-               <span className="text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">
-                 {user.name.charAt(0)}
-               </span>
+               {user.avatarUrl ? (
+                 <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+               ) : (
+                 <span className="text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">
+                   {user.name?.charAt(0)}
+                 </span>
+               )}
             </div>
             <div className="absolute bottom-2 right-2 w-6 h-6 bg-[#10B981] rounded-full border-4 border-[#050816] z-20 shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
           </div>

@@ -34,6 +34,9 @@ export function ProfileEditModal({ isOpen, onClose }) {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const imageUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, avatarUrl: imageUrl });
       toast.success('Profile image updated successfully!');
     }
   };
@@ -64,8 +67,12 @@ export function ProfileEditModal({ isOpen, onClose }) {
           <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4 max-h-[60vh]">
             
             <div className="flex items-center gap-4 mb-4">
-               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] flex items-center justify-center text-xl font-bold text-white">
-                 {formData.name.charAt(0)}
+               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] flex items-center justify-center text-xl font-bold text-white overflow-hidden shrink-0">
+                 {formData.avatarUrl ? (
+                   <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                 ) : (
+                   formData.name?.charAt(0)
+                 )}
                </div>
                <input 
                  type="file" 
