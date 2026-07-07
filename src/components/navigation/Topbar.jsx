@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Bell, Sun, Layout, ChevronDown, Home, LogOut } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +22,7 @@ export function Topbar() {
           <input 
             type="text" 
             placeholder="Search commands, clients, or modules... (Ctrl+K)" 
+            onClick={() => toast.success('Command Palette launched 🚀', { icon: '⌨️' })}
             className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-12 pr-4 text-sm text-white placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B5FFF]/50 focus:ring-1 focus:ring-[#5B5FFF]/50 transition-all shadow-inner"
           />
           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
@@ -30,11 +32,11 @@ export function Topbar() {
       </div>
 
       {/* Center: Workspace Context */}
-      <div className="hidden lg:flex items-center gap-3 px-6 py-2 rounded-full bg-gradient-to-r from-[#5B5FFF]/10 to-[#7C3AED]/10 border border-white/5">
+      <button onClick={() => toast.success('Switched to Business Brain Enterprise workspace.')} className="hidden lg:flex items-center gap-3 px-6 py-2 rounded-full bg-gradient-to-r from-[#5B5FFF]/10 to-[#7C3AED]/10 border border-white/5 hover:bg-white/5 transition-colors cursor-pointer functional-btn">
         <Layout size={16} className="text-[#5B5FFF]" />
         <span className="text-sm font-bold text-white tracking-wide">Business Brain Enterprise</span>
-        <ChevronDown size={16} className="text-[#94A3B8] cursor-pointer" />
-      </div>
+        <ChevronDown size={16} className="text-[#94A3B8]" />
+      </button>
 
       {/* Right: Actions & Profile */}
       <div className="flex-1 flex items-center justify-end gap-4">

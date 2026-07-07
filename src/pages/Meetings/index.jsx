@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Video, Upload, FileText, CheckSquare, Calendar, Users, Zap, Clock, ChevronRight, Mic, MessageCircle } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const meetings = [
   {
@@ -80,7 +81,9 @@ export function MeetingsPage() {
           className="self-start md:self-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white text-sm font-bold shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:scale-[1.02] transition-transform flex items-center gap-2 cursor-pointer"
         >
           <Upload size={16} /> Upload Transcript
-          <input type="file" className="hidden" accept=".txt,.vtt,.srt" />
+          <input type="file" className="hidden" accept=".txt,.vtt,.srt" onChange={(e) => {
+            if(e.target.files.length) toast.success(`Processing ${e.target.files[0].name}...`, { icon: '🚀' })
+          }} />
         </label>
       </div>
 
@@ -90,22 +93,31 @@ export function MeetingsPage() {
         <div className="xl:col-span-1 flex flex-col gap-4">
           
           {/* Drop Zone */}
-          <GlassCard
-            className={`p-6 border-dashed border-2 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[160px] ${
+          <label
+            className={`block p-6 border-dashed border-2 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[160px] rounded-2xl ${
               isDraggingOver
                 ? 'border-[#3B82F6] bg-[#3B82F6]/10 shadow-[0_0_30px_rgba(59,130,246,0.3)]'
                 : 'border-white/10 bg-[#0B1120]/60 hover:border-[#3B82F6]/50 hover:bg-[#3B82F6]/5'
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
             onDragLeave={() => setIsDraggingOver(false)}
-            onDrop={(e) => { e.preventDefault(); setIsDraggingOver(false); }}
+            onDrop={(e) => { 
+              e.preventDefault(); 
+              setIsDraggingOver(false); 
+              if(e.dataTransfer.files.length) {
+                toast.success(`Processing ${e.dataTransfer.files[0].name}...`, { icon: '🚀' });
+              }
+            }}
           >
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-all ${isDraggingOver ? 'bg-[#3B82F6]/30 scale-110' : 'bg-[#3B82F6]/10'}`}>
               {isDraggingOver ? <Mic size={28} className="text-[#3B82F6]" /> : <Upload size={24} className="text-[#3B82F6]" />}
             </div>
             <p className="text-white font-bold text-sm mb-1">{isDraggingOver ? 'Drop to analyze!' : 'Drag & Drop Transcript'}</p>
             <p className="text-xs text-[#94A3B8]">Supports .txt, .vtt, .srt, or audio</p>
-          </GlassCard>
+            <input type="file" className="hidden" accept=".txt,.vtt,.srt" onChange={(e) => {
+              if(e.target.files.length) toast.success(`Processing ${e.target.files[0].name}...`, { icon: '🚀' })
+            }} />
+          </label>
 
           {/* Meeting List */}
           <div>
