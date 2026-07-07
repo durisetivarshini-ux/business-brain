@@ -22,20 +22,28 @@ export function LandingPage() {
       {/* -------------------------------------------------------- */}
       {/* GLOBAL NAVIGATION */}
       {/* -------------------------------------------------------- */}
-      <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 py-4 bg-[#050816]/70 backdrop-blur-2xl border-b border-white/5 transition-all">
-        <Logo size={28} showText={false} />
-        
-        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-[#94A3B8]">
-          <a href="#platform" className="hover:text-white transition-colors">Platform</a>
-          <a href="#enterprise" className="hover:text-white transition-colors">Enterprise</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-        </div>
+      <nav className="fixed top-6 inset-x-0 z-50 flex justify-center px-4">
+        <div className="flex items-center justify-between px-6 py-3 bg-[#0B1120]/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_50px_rgba(0,0,0,0.5)] w-full max-w-5xl transition-all hover:border-white/20">
+          
+          <div className="flex items-center gap-3">
+            <Logo size={24} showText={false} />
+            <span className="font-display font-extrabold text-white tracking-widest uppercase text-[13px]">Business Brain</span>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-8 text-[11px] font-bold tracking-[0.2em] text-[#94A3B8]">
+            <a href="#platform" className="hover:text-white transition-colors">AI CORE</a>
+            <a href="#enterprise" className="hover:text-white transition-colors">MODULES</a>
+            <a href="#pricing" className="hover:text-white transition-colors">PRICING</a>
+          </div>
 
-        <div className="flex items-center gap-4">
-          <Link to="/login" className="text-sm font-bold text-white hover:text-[#00D4FF] transition-colors">Sign In</Link>
-          <Link to="/login" className="px-5 py-2.5 rounded-full bg-white text-black text-sm font-bold shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform">
-            Get Started
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link to="/login" className="hidden md:block text-[11px] font-bold tracking-[0.2em] text-[#94A3B8] hover:text-white transition-colors">
+              SIGN IN
+            </Link>
+            <Link to="/login" className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-[11px] font-bold tracking-[0.2em] hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all">
+              DEPLOY NOW
+            </Link>
+          </div>
         </div>
       </nav>
 
