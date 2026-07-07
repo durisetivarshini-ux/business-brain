@@ -1,14 +1,46 @@
-import React, { useState } from 'react';
-import { Search, Bell, Sun, Layout, ChevronDown, Home, LogOut } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Bell, Sun, Moon, Layout, ChevronDown, Home, LogOut, CheckCircle2, MessageCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../../context/ThemeContext';
+
 
 export function Topbar() {
   const { user } = useAppStore();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    toast(`Switched to ${newTheme} mode`, { icon: newTheme === 'dark' ? '🌙' : '☀️' });
+  };
+
+  const notifications = [
+    { id: 1, title: 'New Strategic Insight', desc: 'AI found $12k in potential savings.', time: '2m ago', icon: <CheckCircle2 size={16} className="text-[#10B981]" /> },
+    { id: 2, title: 'Q3 Report Generated', desc: 'The board meeting report is ready.', time: '1h ago', icon: <MessageCircle size={16} className="text-[#00D4FF]" /> },
+  ];
+
 
   return (
     <header className="h-20 bg-[#0B1120]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 sticky top-0 z-30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
@@ -52,20 +84,65 @@ export function Topbar() {
         </button>
 
         <div className="flex items-center gap-2">
-          <button className="p-2.5 rounded-full text-[#94A3B8] hover:text-white hover:bg-white/5 transition-colors">
-            <Sun size={20} />
+          <button 
+            onClick={toggleTheme}
+            className="p-2.5 rounded-full text-[#94A3B8] hover:text-white hover:bg-white/5 transition-colors"
+          >
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <button className="relative p-2.5 rounded-full text-[#94A3B8] hover:text-white hover:bg-white/5 transition-colors group">
-            <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-[#00D4FF] rounded-full shadow-[0_0_10px_#00D4FF]" />
-          </button>
+          
+          <div className="relative" ref={notifRef}>
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2.5 rounded-full text-[#94A3B8] hover:text-white hover:bg-white/5 transition-colors group"
+            >
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[#00D4FF] rounded-full shadow-[0_0_10px_#00D4FF]" />
+            </button>
+
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-14 w-80 bg-[#0B1120] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-50"
+                >
+                  <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-white">Notifications</h3>
+                    <span className="text-xs text-[#00D4FF] bg-[#00D4FF]/10 px-2 py-0.5 rounded font-bold">2 New</span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                    {notifications.map(n => (
+                      <div key={n.id} className="px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer flex gap-3">
+                        <div className="mt-0.5">{n.icon}</div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{n.title}</p>
+                          <p className="text-xs text-[#94A3B8] mt-0.5">{n.desc}</p>
+                          <p className="text-[10px] text-[#94A3B8]/60 mt-1">{n.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2">
+                    <button onClick={() => { setShowNotifications(false); toast.success('All notifications marked as read.'); }} className="w-full py-2 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                      Mark all as read
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
 
         <div className="h-8 w-px bg-white/10" />
 
         {/* Profile Dropdown */}
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
+
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-3 hover:bg-white/5 p-1.5 pr-4 rounded-full transition-colors border border-transparent hover:border-white/5 cursor-pointer"
           >
