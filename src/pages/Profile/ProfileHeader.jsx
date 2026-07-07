@@ -167,7 +167,7 @@ function ShareModal({ isOpen, onClose, user }) {
 }
 
 export function ProfileHeader() {
-  const { user } = useAppStore();
+  const { user, updateUser } = useAppStore();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isIDCardOpen, setIsIDCardOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -181,6 +181,9 @@ export function ProfileHeader() {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const imageUrl = URL.createObjectURL(file);
+      updateUser({ coverUrl: imageUrl });
       toast.success('Cover image updated successfully!');
     }
   };
@@ -190,10 +193,16 @@ export function ProfileHeader() {
       
       {/* 1. Massive Aurora Banner */}
       <div className="h-[250px] md:h-[300px] w-full rounded-2xl overflow-hidden relative border border-white/5 shadow-2xl">
-        <div className="absolute inset-0 bg-[#0B1120]" />
-        <div className="absolute top-[-50%] left-[-20%] w-[100%] h-[200%] bg-[#5B5FFF]/30 blur-[120px] animate-[pulse_10s_ease-in-out_infinite]" />
-        <div className="absolute top-[-50%] right-[-20%] w-[80%] h-[150%] bg-[#00D4FF]/30 blur-[100px] animate-[pulse_8s_ease-in-out_infinite_reverse]" />
-        <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPGVsbGlwc2UgY3g9IjQiIGN5PSI0IiByeD0iMyIgcnk9IjMiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuMDUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4=')] mix-blend-overlay" />
+        {user.coverUrl ? (
+          <img src={user.coverUrl} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-[#0B1120]" />
+            <div className="absolute top-[-50%] left-[-20%] w-[100%] h-[200%] bg-[#5B5FFF]/30 blur-[120px] animate-[pulse_10s_ease-in-out_infinite]" />
+            <div className="absolute top-[-50%] right-[-20%] w-[80%] h-[150%] bg-[#00D4FF]/30 blur-[100px] animate-[pulse_8s_ease-in-out_infinite_reverse]" />
+            <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPGVsbGlwc2UgY3g9IjQiIGN5PSI0IiByeD0iMyIgcnk9IjMiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuMDUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4=')] mix-blend-overlay" />
+          </>
+        )}
         
         {/* Cover Actions */}
         <div className="absolute top-4 right-4 flex gap-3">
