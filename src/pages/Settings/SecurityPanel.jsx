@@ -65,20 +65,20 @@ export function SecurityPanel() {
           <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-6">Active Sessions</h3>
           <div className="space-y-4">
             {sessions.map(session => (
-              <div key={session.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                <div className="flex items-center gap-3">
-                  {session.icon}
-                  <div>
-                    <p className="text-white text-sm font-bold">{session.device}</p>
-                    <p className="text-xs text-[#94A3B8]">{session.location}</p>
+              <div key={session.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="shrink-0">{session.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-bold truncate">{session.device}</p>
+                    <p className="text-xs text-[#94A3B8] truncate">{session.location}</p>
                   </div>
                 </div>
                 {session.active ? (
-                  <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                  <span className="w-2 h-2 rounded-full bg-[#10B981] shrink-0" />
                 ) : (
                   <button 
                     onClick={() => handleRevoke(session.id)}
-                    className="text-xs font-bold text-[#EF4444] hover:underline"
+                    className="text-xs font-bold text-[#EF4444] hover:underline shrink-0"
                   >
                     Revoke
                   </button>
@@ -90,12 +90,12 @@ export function SecurityPanel() {
         </GlassCard>
 
         {/* API Keys */}
-        <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
-           <div className="flex justify-between items-center mb-6">
-             <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider">Developer API Keys</h3>
+        <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 flex flex-col min-w-0">
+           <div className="flex justify-between items-center mb-6 gap-2">
+             <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider truncate">Developer API Keys</h3>
              <button 
                onClick={handleGenerateKey}
-               className="text-xs font-bold text-[#00D4FF] hover:underline"
+               className="text-xs font-bold text-[#00D4FF] hover:underline shrink-0 whitespace-nowrap"
              >
                + Generate New
              </button>
@@ -103,21 +103,21 @@ export function SecurityPanel() {
 
            <div className="space-y-4">
              {apiKeys.map(api => (
-               <div key={api.id} className="p-3 rounded-lg bg-white/5 border border-white/5">
-                 <div className="flex justify-between items-center mb-2">
-                   <p className="text-white text-sm font-bold flex items-center gap-2">
-                     <Key size={14} className="text-[#F59E0B]"/> {api.name}
+               <div key={api.id} className="p-3 rounded-lg bg-white/5 border border-white/5 flex flex-col min-w-0">
+                 <div className="flex justify-between items-center mb-2 gap-2">
+                   <p className="text-white text-sm font-bold flex items-center gap-2 truncate">
+                     <Key size={14} className="text-[#F59E0B] shrink-0"/> <span className="truncate">{api.name}</span>
                    </p>
-                   <span className="text-xs text-[#94A3B8]">{api.date}</span>
+                   <span className="text-xs text-[#94A3B8] shrink-0 whitespace-nowrap">{api.date}</span>
                  </div>
-                 <div className="flex items-center justify-between bg-[#050816] p-2 rounded border border-white/10">
-                   <code className="text-[#94A3B8] text-xs font-mono">{api.key}</code>
+                 <div className="flex items-center justify-between bg-[#050816] p-2 rounded border border-white/10 gap-3 overflow-hidden">
+                   <code className="text-[#94A3B8] text-xs font-mono truncate">{api.key}</code>
                    <button 
                      onClick={() => { 
                        navigator.clipboard.writeText(api.fullKey); 
                        toast.success('API key copied to clipboard!'); 
                      }}
-                     className="text-xs font-bold text-white hover:text-[#5B5FFF]"
+                     className="text-xs font-bold text-white hover:text-[#5B5FFF] shrink-0"
                    >
                      Copy
                    </button>
