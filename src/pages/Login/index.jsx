@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Bot, Activity, Globe, Command } from 'lucide-react';
 import { Logo } from '../../components/common/Logo';
 import { InitializationScreen } from '../../components/common/InitializationScreen';
+import { FunctionalButton } from '../../components/ui/FunctionalButton';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -230,12 +231,20 @@ export function LoginPage() {
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
-              <button className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-semibold transition-colors">
+              <FunctionalButton 
+                actionName="SSO Login"
+                successMessage="Successfully authenticated with Google SSO!"
+                className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-semibold transition-colors"
+              >
                 <Globe size={16} /> Google
-              </button>
-              <button className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-semibold transition-colors">
+              </FunctionalButton>
+              <FunctionalButton 
+                actionName="SSO Login"
+                successMessage="Successfully authenticated with Microsoft SSO!"
+                className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-semibold transition-colors"
+              >
                 <Command size={16} /> Microsoft
-              </button>
+              </FunctionalButton>
             </div>
 
           </div>

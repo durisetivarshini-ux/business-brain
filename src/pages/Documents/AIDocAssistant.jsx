@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bot, Sparkles, FileText, ScanLine, PenTool } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
+import { FunctionalButton } from '../../components/ui/FunctionalButton';
 
 export function AIDocAssistant() {
   const insights = [
@@ -41,15 +42,27 @@ export function AIDocAssistant() {
           </p>
 
           <div className="flex flex-col gap-3">
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#5B5FFF] text-white text-sm font-bold shadow-lg shadow-[#10B981]/20 transition-transform hover:scale-[1.02]">
+            <FunctionalButton 
+              actionName="Scanner"
+              successMessage="OCR Scanner initialized successfully!"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#5B5FFF] text-white text-sm font-bold shadow-lg shadow-[#10B981]/20 transition-transform hover:scale-[1.02]"
+            >
               <ScanLine size={16} /> Open OCR Scanner
-            </button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
+            </FunctionalButton>
+            <FunctionalButton 
+              actionName="Signatures"
+              successMessage="Loading pending signature requests..."
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+            >
               <PenTool size={16} /> Review Signatures
-            </button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
+            </FunctionalButton>
+            <FunctionalButton 
+              actionName="Summaries"
+              successMessage="Retrieving document summaries..."
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+            >
               <FileText size={16} /> View Summaries
-            </button>
+            </FunctionalButton>
           </div>
         </div>
 
