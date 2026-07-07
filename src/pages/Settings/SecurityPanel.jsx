@@ -32,7 +32,8 @@ export function SecurityPanel() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 h-full w-full">
+      <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider">Security & Authentication</h3>
       
       {/* 2FA Card */}
       <GlassCard className="p-6 border-[#10B981]/30 bg-gradient-to-br from-[#0B1120]/90 to-[#050816]/90 relative overflow-hidden">
@@ -49,7 +50,7 @@ export function SecurityPanel() {
           </div>
           <button 
             onClick={() => toast.success('2FA settings opened.')}
-            className="px-6 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+            className="px-6 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)] shrink-0 whitespace-nowrap"
           >
             Configured
           </button>
