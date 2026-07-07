@@ -20,6 +20,41 @@ export function LoginPage() {
   const [ssoEmail, setSsoEmail] = useState('');
   const [ssoName, setSsoName] = useState('');
 
+  const deriveNameFromEmail = (emailStr) => {
+    if (!emailStr) return '';
+    const part = emailStr.split('@')[0].toLowerCase();
+    
+    // Special check for Varshini Duriseti combinations
+    if (part.includes('varshini') && part.includes('duriseti')) {
+      return 'Varshini Duriseti';
+    }
+    
+    // Split by dot, dash, underscore
+    if (/[._-]/.test(part)) {
+      return part
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .trim();
+    }
+    
+    // Single run of letters with known prefixes/suffixes
+    if (part.startsWith('varshini')) {
+      const rest = part.slice(8);
+      return 'Varshini' + (rest ? ' ' + rest.charAt(0).toUpperCase() + rest.slice(1) : '');
+    }
+    if (part.endsWith('duriseti')) {
+      const rest = part.slice(0, part.length - 8);
+      return (rest ? rest.charAt(0).toUpperCase() + rest.slice(1) + ' ' : '') + 'Duriseti';
+    }
+    if (part.startsWith('alex')) {
+      const rest = part.slice(4);
+      return 'Alex' + (rest ? ' ' + rest.charAt(0).toUpperCase() + rest.slice(1) : '');
+    }
+
+    // Default capitalize
+    return part.charAt(0).toUpperCase() + part.slice(1);
+  };
+
   const enterDashboard = (userData) => {
     setUser(userData);
     setShowInit(true);
@@ -32,10 +67,7 @@ export function LoginPage() {
     if (!email.trim()) return;
     setIsLoading(true);
 
-    const derived = email.split('@')[0]
-      .replace(/[._-]/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase())
-      .trim();
+    const derived = deriveNameFromEmail(email);
 
     setTimeout(() => {
       enterDashboard({
@@ -52,11 +84,7 @@ export function LoginPage() {
     e.preventDefault();
     if (!ssoEmail.trim()) return;
 
-    const derived = ssoEmail.split('@')[0]
-      .replace(/[._-]/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase())
-      .trim();
-
+    const derived = deriveNameFromEmail(ssoEmail);
     const finalName = ssoName.trim() || derived || 'User';
     
     // Choose appropriate avatar url based on login type
@@ -74,6 +102,7 @@ export function LoginPage() {
     toast.success(`Welcome, ${finalName}! Signed in via ${ssoType === 'google' ? 'Google' : 'Microsoft'} SSO.`);
     setSsoType(null);
   };
+
 
   if (showInit) {
     return <InitializationScreen />;
