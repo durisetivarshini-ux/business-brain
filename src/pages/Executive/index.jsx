@@ -53,7 +53,55 @@ function BoardReportModal({ onClose }) {
     setDownloading(true);
     setTimeout(() => {
       setDownloading(false);
-      toast.success('Executive Board Report PDF downloaded! 📄');
+      
+      const reportText = `=====================================================
+               EXECUTIVE BOARD REPORT
+                  BUSINESS BRAIN
+=====================================================
+
+GENERATED ON: ${new Date().toLocaleDateString()}
+AUTHOR: AI Copilot
+STATUS: Final Review
+
+-----------------------------------------------------
+1. EXECUTIVE SUMMARY
+-----------------------------------------------------
+Business Brain is performing exceptionally well in Q3. 
+Revenue hit $14.2M (+18% YTD) with operating margins 
+tracking at 24% (exceeding the target of 22%). 
+APAC expansion shows strong product-market fit, and 
+AI analysis forecasts sustained momentum into Q4.
+
+-----------------------------------------------------
+2. KEY PERFORMANCE INDICATORS
+-----------------------------------------------------
+* Total Revenue: $14.2M (+18% YTD)
+* Operating Margin: 24% (Target: 22%)
+* Customer Growth: 18.5% (vs Q2)
+* Active Risks: Low/Managed
+
+-----------------------------------------------------
+3. STRATEGIC RECOMMENDATIONS
+-----------------------------------------------------
+* Proceed to term sheet on M&A TechNova acquisition.
+* Fund APAC localized marketing spend (15% increase).
+* Review server migration metrics to optimize costs.
+
+=====================================================
+© ${new Date().getFullYear()} Business Brain Inc. All Rights Reserved.
+=====================================================`;
+
+      const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Executive_Board_Report_Q3_${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Executive Board Report downloaded successfully! 📄');
     }, 1500);
   };
 
