@@ -17,32 +17,64 @@ export function ChatWindow() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     if (!text.trim()) return;
     
     const newMessages = [...messages, { role: 'user', content: text, type: 'text' }];
     setMessages(newMessages);
     setIsTyping(true);
 
-    // Simulate AI Processing & Response
-    setTimeout(() => {
-      let aiResponse = { role: 'assistant', type: 'text', content: '' };
-
-      const lowerText = text.toLowerCase();
-      if (lowerText.includes('revenue') || lowerText.includes('sales')) {
-        aiResponse.type = 'chart_revenue';
-        aiResponse.content = "Here is the Q3 Revenue Analysis you requested. We are up 12% year-over-year. The Marketing campaign 'Alpha' was the primary driver.";
-      } else if (lowerText.includes('inventory') || lowerText.includes('stock')) {
-        aiResponse.type = 'markdown';
-        aiResponse.content = "### Inventory Alert ⚠️\n\n* **Product A:** 500 units remaining (Depleting fast)\n* **Product B:** 12,000 units remaining (Overstocked)\n\n**Recommendation:** Generate a PO for Product A immediately.";
-      } else {
-        aiResponse.type = 'markdown';
-        aiResponse.content = "I have analyzed the data across CRM, Finance, and HR. Everything seems stable. **Revenue is healthy** and **Marketing ROI** has improved by 4% this month.\n\nLet me know if you want me to generate a specific forecast or executive report.";
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey || apiKey === 'your-api-key-here') {
+        // Fallback Mock Logic if no API key is provided
+        setTimeout(() => {
+          let aiResponse = { role: 'assistant', type: 'text', content: '' };
+          const lowerText = text.toLowerCase();
+          if (lowerText.includes('revenue') || lowerText.includes('sales')) {
+            aiResponse.type = 'chart_revenue';
+            aiResponse.content = "Here is the Q3 Revenue Analysis you requested. We are up 12% year-over-year.";
+          } else {
+            aiResponse.type = 'markdown';
+            aiResponse.content = `**API Key Missing!**\n\nTo use the real Gemini AI, please add \`VITE_GEMINI_API_KEY\` to your \`.env.local\` file and Vercel environment variables.\n\nHere is a simulated response for your prompt: *"${text}"*`;
+          }
+          setMessages([...newMessages, aiResponse]);
+          setIsTyping(false);
+        }, 1500);
+        return;
       }
 
-      setMessages([...newMessages, aiResponse]);
+      // Initialize Gemini
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-pro",
+        systemInstruction: "You are Business Brain Copilot, an advanced AI assistant for enterprise management. You have access to simulated data for CRM, Finance, HR, and Operations. Format your responses in Markdown. Keep them professional, concise, and highly analytical."
+      });
+
+      // Build chat history for context
+      const history = messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(text);
+      const response = await result.response;
+      
+      setMessages([...newMessages, { role: 'assistant', type: 'markdown', content: response.text() }]);
       setIsTyping(false);
-    }, 2000);
+
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      setMessages([...newMessages, { 
+        role: 'assistant', 
+        type: 'markdown', 
+        content: `**Error:** Failed to communicate with Gemini AI.\n\n\`${error.message}\`` 
+      }]);
+      setIsTyping(false);
+    }
   };
 
   return (
