@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { FunctionalButton } from '../../components/ui/FunctionalButton';
+import { toast } from 'react-hot-toast';
 
 export function ProfileEditModal({ isOpen, onClose }) {
   const { user, updateUser } = useAppStore();
-  const [formData, setFormData] = useState({ ...user });
+  const [formData, setFormData] = useState({ 
+    ...user,
+    linkedin: user?.linkedin || '',
+    phone: user?.phone || ''
+  });
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
@@ -16,7 +22,20 @@ export function ProfileEditModal({ isOpen, onClose }) {
 
   const handleSave = () => {
     updateUser(formData);
+    toast.success('Profile updated successfully!');
     onClose();
+  };
+
+  const handleImageUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      toast.success('Profile image updated successfully!');
+    }
   };
 
   return (
@@ -48,12 +67,19 @@ export function ProfileEditModal({ isOpen, onClose }) {
                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] flex items-center justify-center text-xl font-bold text-white">
                  {formData.name.charAt(0)}
                </div>
-               <FunctionalButton 
-                 className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 flex items-center gap-2"
-                 successMessage="Image uploaded successfully!"
+               <input 
+                 type="file" 
+                 ref={fileInputRef} 
+                 className="hidden" 
+                 accept="image/*" 
+                 onChange={handleFileChange} 
+               />
+               <button 
+                 onClick={handleImageUploadClick}
+                 className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 flex items-center gap-2 transition-colors"
                >
                  <ImageIcon size={16} /> Upload New Image
-               </FunctionalButton>
+               </button>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -69,6 +95,16 @@ export function ProfileEditModal({ isOpen, onClose }) {
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">Email</label>
               <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-[#050816] border border-white/10 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-[#5B5FFF]/50" />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">Mobile Number</label>
+              <input type="text" name="phone" value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" className="w-full bg-[#050816] border border-white/10 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-[#5B5FFF]/50" />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">LinkedIn Account</label>
+              <input type="text" name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="https://linkedin.com/in/username" className="w-full bg-[#050816] border border-white/10 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-[#5B5FFF]/50" />
             </div>
 
             <div className="flex flex-col gap-1.5">
