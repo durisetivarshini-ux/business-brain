@@ -4,6 +4,7 @@ import { MapPin, Mail, Phone, Edit2, Download, Share2, CheckCircle2, X, Copy, Ch
 import { GlassCard } from '../../components/ui/GlassCard';
 import { useAppStore } from '../../store/useAppStore';
 import { ProfileEditModal } from './ProfileEditModal';
+import { toast } from 'react-hot-toast';
 
 function IDCardModal({ isOpen, onClose, user }) {
   if (!isOpen) return null;
@@ -162,6 +163,19 @@ export function ProfileHeader() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isIDCardOpen, setIsIDCardOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  const handleEditCoverClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      toast.success('Cover image updated successfully!');
+    }
+  };
 
   return (
     <div className="relative mb-16">
@@ -175,7 +189,17 @@ export function ProfileHeader() {
         
         {/* Cover Actions */}
         <div className="absolute top-4 right-4 flex gap-3">
-          <button className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold transition-colors flex items-center gap-2">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleFileChange} 
+          />
+          <button 
+            onClick={handleEditCoverClick}
+            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold transition-colors flex items-center gap-2"
+          >
             <Edit2 size={14} /> Edit Cover
           </button>
         </div>
