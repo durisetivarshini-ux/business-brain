@@ -30,7 +30,7 @@ export function FunctionalButton({
   };
 
   return (
-    <button onClick={handleClick} className={className} {...props}>
+    <button onClick={handleClick} className={`functional-btn ${className}`} {...props}>
       {children}
     </button>
   );

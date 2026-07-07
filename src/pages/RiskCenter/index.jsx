@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, ShieldAlert, Activity, AlertOctagon, ArrowUpRight, TrendingDown } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { FunctionalButton } from '@/components/ui/FunctionalButton';
 import { motion } from 'framer-motion';
 
 export function RiskCenterPage() {
@@ -26,9 +27,13 @@ export function RiskCenterPage() {
           <p className="text-[#94A3B8] font-medium">AI-driven proactive identification of business threats.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 rounded-xl bg-[#EF4444] text-white text-sm font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-transform hover:scale-[1.02]">
+          <FunctionalButton 
+            actionName="Full Audit"
+            successMessage="Enterprise risk audit initiated successfully!"
+            className="px-4 py-2 rounded-xl bg-[#EF4444] text-white text-sm font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-transform hover:scale-[1.02]"
+          >
             Run Full Audit
-          </button>
+          </FunctionalButton>
         </div>
       </div>
 
@@ -98,9 +103,13 @@ export function RiskCenterPage() {
                     {risk.action}
                   </td>
                   <td className="p-4">
-                    <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-colors">
+                    <FunctionalButton 
+                      actionName="Mitigate Risk"
+                      successMessage={`Mitigation workflow initiated for ${risk.id}`}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-colors"
+                    >
                       Mitigate <ArrowUpRight size={14} />
-                    </button>
+                    </FunctionalButton>
                   </td>
                 </tr>
               ))}
