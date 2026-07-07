@@ -3,8 +3,12 @@ import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { FunctionalButton } from '../ui/FunctionalButton';
+import { useAppStore } from '../../store/useAppStore';
 
 export function DashboardHero() {
+  const { user } = useAppStore();
+  const displayName = user?.name || 'there';
+  const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
   return (
     <div className="flex flex-col md:flex-row gap-6 mb-8 relative z-10">
       
@@ -23,14 +27,14 @@ export function DashboardHero() {
             <Sparkles size={14} /> AI Analysis Complete
           </motion.div>
           
-          <motion.h1 
+            <motion.h1 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="font-display text-3xl md:text-4xl font-bold text-white mb-2"
           >
-            Good Morning 👋 <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">Welcome back, Varshini.</span>
+            {greeting} 👋 <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">Welcome back, {displayName}.</span>
           </motion.h1>
           
           <motion.p 

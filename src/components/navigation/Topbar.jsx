@@ -69,10 +69,14 @@ export function Topbar() {
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-3 hover:bg-white/5 p-1.5 pr-4 rounded-full transition-colors border border-transparent hover:border-white/5 cursor-pointer"
           >
-            {/* Avatar — uses initials, no external image needed */}
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#7C3AED] flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {user?.name?.charAt(0) || 'V'}
-            </div>
+            {/* Avatar — shows Google photo if available, otherwise initials */}
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} referrerPolicy="no-referrer" className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-white/10" alt={user.name} />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#7C3AED] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
             <div className="text-left hidden sm:block">
               <p className="text-sm font-bold text-white leading-none mb-1">{user?.name || 'Varshini'}</p>
               <p className="text-[10px] font-semibold text-[#00D4FF] uppercase tracking-wider leading-none">Super Admin</p>

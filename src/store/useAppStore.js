@@ -4,16 +4,11 @@ import { persist } from 'zustand/middleware';
 export const useAppStore = create(
   persist(
     (set) => ({
-      // User Profile
-      user: {
-        name: 'Varshini',
-        role: 'Chief Operating Officer (COO)',
-        email: 'varshini@businessbrain.ai',
-        phone: '+1 (555) 019-2834',
-        location: 'San Francisco, CA',
-        avatarUrl: null
-      },
+      // User Profile — null until logged in
+      user: null,
+      setUser: (user) => set({ user }),
       updateUser: (data) => set((state) => ({ user: { ...state.user, ...data } })),
+      clearUser: () => set({ user: null }),
 
       // Application Data
       crmLeads: [
