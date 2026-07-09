@@ -275,8 +275,10 @@ export function CopilotPage() {
             aiResponse.content = `### Financial Summary\n\n- **Cash Position:** $8.2M (healthy)\n- **AR Outstanding:** $1.4M (avg 34 days)\n- **Budget Variance:** -3% (within tolerance)\n\n**Alert:** 2 invoices overdue by 60+ days — initiate collections process.`;
           } else if (lowerText.includes('competitor') || lowerText.includes('strategy')) {
             aiResponse.content = `### Competitive Intelligence\n\n**Top Competitors:**\n| Company | Market Share | Strengths |\n|---|---|---|\n| Acme Corp | 32% | Price leadership |\n| NovaTech | 18% | Platform breadth |\n\n**Our Advantages:** AI-native architecture, enterprise integrations, real-time analytics.`;
+          } else if (lowerText.includes('hi') || lowerText.includes('hello') || lowerText.includes('hey')) {
+            aiResponse.content = `Hello! I am your **Business Brain Copilot**.\n\nI can help you analyze your enterprise data, generate reports, or provide strategic recommendations. Try asking me about:\n- 📈 **Revenue & Sales**\n- 📦 **Inventory Status**\n- 👥 **HR Insights**\n- 💰 **Financial Summary**\n- 🎯 **Marketing Performance**\n\nHow can I assist you today?`;
           } else {
-            aiResponse.content = `I've analyzed the data across all business units.\n\n**Summary:**\n- Revenue is healthy, tracking **+14% YoY**\n- Marketing ROI improved by **+4%** this month\n- No critical operational risks detected\n\n**Next Steps:** Would you like me to generate a specific forecast, executive report, or drill into a particular department?\n\n> *Tip: Add your Gemini API key (\`VITE_GEMINI_API_KEY\`) to enable real AI responses.*`;
+            aiResponse.content = `I understand you are asking about: "${msg}".\n\nSince you are currently in **Mock Mode** (without a Gemini API Key), I am limited to demonstrating specific analytical capabilities.\n\nTo see my mock analysis, try asking me for a **Revenue Analysis**, **Inventory Status**, or **HR Report**!\n\n> *Tip: Add your Gemini API key (\`VITE_GEMINI_API_KEY\`) to enable full conversational AI responses.*`;
           }
           setMessages([...newMessages, aiResponse]);
           setIsTyping(false);
