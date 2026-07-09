@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Globe2, Zap, Cpu, Database, TrendingUp, Users, BarChart3, Server, ShieldCheck, Wifi, ArrowUpRight, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NODES = [
-  { name: 'AI Brain',     icon: Cpu,       color: '#00D4FF', glow: '#00D4FF', angle: -90,  load: 62, status: 'Processing' },
-  { name: 'Finance Core', icon: Database,   color: '#10B981', glow: '#10B981', angle: -30,  load: 45, status: 'Optimal' },
-  { name: 'Sales Hub',    icon: TrendingUp, color: '#F97316', glow: '#EF4444', angle:  30,  load: 88, status: 'High Load' },
-  { name: 'Analytics',    icon: BarChart3,  color: '#EC4899', glow: '#EC4899', angle:  90,  load: 71, status: 'Processing' },
-  { name: 'HR Systems',   icon: Users,      color: '#8B5CF6', glow: '#8B5CF6', angle: 150,  load: 34, status: 'Optimal' },
-  { name: 'Inventory',    icon: Server,     color: '#F59E0B', glow: '#F59E0B', angle: 210,  load: 30, status: 'Optimal' },
+  { name: 'AI Brain',     icon: Cpu,       color: '#00D4FF', glow: '#00D4FF', angle: -90,  load: 62, status: 'Processing', path: '/app/ai-copilot' },
+  { name: 'Finance Core', icon: Database,   color: '#10B981', glow: '#10B981', angle: -30,  load: 45, status: 'Optimal', path: '/app/finance' },
+  { name: 'Sales Hub',    icon: TrendingUp, color: '#F97316', glow: '#EF4444', angle:  30,  load: 88, status: 'High Load', path: '/app/sales' },
+  { name: 'Analytics',    icon: BarChart3,  color: '#EC4899', glow: '#EC4899', angle:  90,  load: 71, status: 'Processing', path: '/app' },
+  { name: 'HR Systems',   icon: Users,      color: '#8B5CF6', glow: '#8B5CF6', angle: 150,  load: 34, status: 'Optimal', path: '/app/hrms' },
+  { name: 'Inventory',    icon: Server,     color: '#F59E0B', glow: '#F59E0B', angle: 210,  load: 30, status: 'Optimal', path: '/app/inventory' },
 ];
 
 const LOG_LINES = [
@@ -38,6 +39,7 @@ const KPIS = [
 ];
 
 export function DigitalTwinPage() {
+  const navigate = useNavigate();
   const [loads, setLoads]           = useState(NODES.map(n => n.load));
   const [logs, setLogs]             = useState(LOG_LINES.slice(0, 6));
   const [tick, setTick]             = useState(0);
@@ -233,6 +235,7 @@ export function DigitalTwinPage() {
                   style={{ position: 'absolute', left: pos.x, top: pos.y, transform: 'translate(-50%, -50%)', zIndex: 20 }}
                   onMouseEnter={() => setActiveNode(i)}
                   onMouseLeave={() => setActiveNode(null)}
+                  onClick={() => navigate(node.path)}
                   className="cursor-pointer group"
                 >
                   {/* Icon */}
