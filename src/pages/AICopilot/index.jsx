@@ -255,61 +255,37 @@ export function CopilotPage() {
     setIsTyping(true);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      // Create a temporary message for the AI's response that we will stream into
+      const aiMessageId = Date.now();
+      setMessages(prev => [...prev, { id: aiMessageId, role: 'assistant', type: 'markdown', content: '' }]);
+      
+      const { generateAIResponse } = await import('../../services/ai');
+      const stream = await generateAIResponse(msg, messages);
 
-      if (!apiKey || apiKey === 'your-api-key-here') {
-        // Fallback Mock Logic
-        setTimeout(() => {
-          const lowerText = msg.toLowerCase();
-          let aiResponse = { role: 'assistant', type: 'markdown', content: '' };
-          if (lowerText.includes('revenue') || lowerText.includes('sales')) {
-            aiResponse.type = 'chart_revenue';
-            aiResponse.content = `### Revenue Analysis\n\nQ3 revenue came in at **$12.4M**, which is **+14% YoY**. The primary growth driver was the Enterprise segment (+22%). Marketing automation campaigns contributed $1.8M in pipeline.\n\n**Recommendations:**\n- Expand Enterprise outreach in APAC\n- Double down on top-performing channels\n- Schedule upsell campaigns for existing accounts`;
-          } else if (lowerText.includes('inventory') || lowerText.includes('stock')) {
-            aiResponse.content = `### Inventory Status\n\n⚠️ **Critical Alerts:**\n* **Product A:** 500 units remaining — *reorder immediately*\n* **Product B:** 12,000 units — *overstocked*\n\n**Recommendation:** Generate a PO for Product A and pause Product B procurement for 60 days.`;
-          } else if (lowerText.includes('hr') || lowerText.includes('employee') || lowerText.includes('workforce')) {
-            aiResponse.content = `### HR Insights\n\n**Attrition Risk:** 3 high performers in Engineering flagged (30% sentiment drop)\n\n**Action Items:**\n1. Schedule townhall for Engineering team\n2. Review compensation benchmarks vs. market\n3. Initiate retention offers for top 3 flagged employees`;
-          } else if (lowerText.includes('marketing')) {
-            aiResponse.content = `### Marketing Performance\n\n**Top Campaigns:**\n| Campaign | ROI | Leads |\n|---|---|---|\n| Alpha Series | 340% | 1,240 |\n| Webinar Q3 | 210% | 890 |\n\n**Q4 Recommendation:** Double budget on Alpha Series and launch a targeted ABM campaign for Enterprise prospects.`;
-          } else if (lowerText.includes('finance') || lowerText.includes('cash')) {
-            aiResponse.content = `### Financial Summary\n\n- **Cash Position:** $8.2M (healthy)\n- **AR Outstanding:** $1.4M (avg 34 days)\n- **Budget Variance:** -3% (within tolerance)\n\n**Alert:** 2 invoices overdue by 60+ days — initiate collections process.`;
-          } else if (lowerText.includes('competitor') || lowerText.includes('strategy')) {
-            aiResponse.content = `### Competitive Intelligence\n\n**Top Competitors:**\n| Company | Market Share | Strengths |\n|---|---|---|\n| Acme Corp | 32% | Price leadership |\n| NovaTech | 18% | Platform breadth |\n\n**Our Advantages:** AI-native architecture, enterprise integrations, real-time analytics.`;
-          } else if (lowerText.includes('hi') || lowerText.includes('hello') || lowerText.includes('hey')) {
-            aiResponse.content = `Hello! I am your **Business Brain Copilot**.\n\nI can help you analyze your enterprise data, generate reports, or provide strategic recommendations. Try asking me about:\n- 📈 **Revenue & Sales**\n- 📦 **Inventory Status**\n- 👥 **HR Insights**\n- 💰 **Financial Summary**\n- 🎯 **Marketing Performance**\n\nHow can I assist you today?`;
-          } else {
-            aiResponse.content = `I understand you are asking about: "${msg}".\n\nSince you are currently in **Mock Mode** (without a Gemini API Key), I am limited to demonstrating specific analytical capabilities.\n\nTo see my mock analysis, try asking me for a **Revenue Analysis**, **Inventory Status**, or **HR Report**!\n\n> *Tip: Add your Gemini API key (\`VITE_GEMINI_API_KEY\`) to enable full conversational AI responses.*`;
-          }
-          setMessages([...newMessages, aiResponse]);
-          setIsTyping(false);
-        }, 1800);
-        return;
+      let fullContent = '';
+      for await (const chunk of stream) {
+        fullContent += chunk.text();
+        setMessages(prev => prev.map(m => 
+          m.id === aiMessageId ? { ...m, content: fullContent } : m
+        ));
       }
-
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-pro',
-        systemInstruction: 'You are Business Brain Copilot, an advanced AI assistant for enterprise management. Analyze CRM, Finance, HR, Operations data. Format in Markdown with headers, bullet points, and tables. Be concise and data-driven.'
-      });
-
-      const history = messages.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }]
-      }));
-
-      const chat = model.startChat({ history });
-      const result = await chat.sendMessage(msg);
-      const response = await result.response;
-      setMessages([...newMessages, { role: 'assistant', type: 'markdown', content: response.text() }]);
       setIsTyping(false);
     } catch (error) {
       console.error('Gemini API Error:', error);
-      setMessages([...newMessages, {
-        role: 'assistant',
-        type: 'markdown',
-        content: `**Error communicating with AI:** \`${error.message}\`\n\nPlease check your API key configuration.`
-      }]);
+      let errorMsg = `**Error communicating with AI:** \`${error.message}\``;
+      
+      if (error.message === 'API_KEY_MISSING') {
+        errorMsg = `### ⚠️ AI Setup Required\n\nTo use the Business Brain Copilot, you need to connect a Google Gemini API Key.\n\n1. Get a free API key from [Google AI Studio](https://aistudio.google.com/)\n2. Add it to your \`.env\` file as \`VITE_GEMINI_API_KEY=your_key_here\`\n3. Restart the development server.`;
+      }
+      
+      setMessages(prev => {
+        const withoutLast = prev.slice(0, -1); // Remove the empty streaming message
+        return [...withoutLast, {
+          role: 'assistant',
+          type: 'markdown',
+          content: errorMsg
+        }];
+      });
       setIsTyping(false);
     }
   };

@@ -6,30 +6,17 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 // The overarching system prompt for the Business Brain persona
 const SYSTEM_PROMPT = `
-You are Business Brain, the central AI Operating System for a billion-dollar enterprise.
-You are extremely professional, insightful, and concise.
-You can analyze data, write code, formulate business strategies, and draft corporate communications.
-When asked about business metrics, invent plausible, realistic enterprise data if none is provided.
-Always format your responses cleanly using Markdown. Use tables, bolding, and bullet points where appropriate.
-Never break character. You are not ChatGPT, you are Business Brain.
+You are Business Brain Copilot, an advanced AI assistant.
+You are extremely professional, insightful, and capable of answering ANY question.
+You can analyze data, write code in any language (Python, React, JavaScript, SQL, etc.), solve math problems, provide translations, and formulate business strategies.
+You are not restricted to business topics. You can answer general knowledge, science, technology, and coding questions.
+Always format your responses cleanly using Markdown. Use tables, bolding, code blocks with syntax highlighting, and bullet points where appropriate.
+Be concise but thorough.
 `;
 
 export async function generateAIResponse(prompt, history = []) {
   if (!genAI) {
-    console.warn("API_KEY_MISSING: Falling back to simulated AI stream. Add VITE_GEMINI_API_KEY to enable live Gemini LLM.");
-    
-    // Create a realistic mock stream generator
-    async function* createMockStream() {
-      const mockResponse = `**Live Synthesis Complete**\n\n**📈 Positive:** Global revenue is up 12.4% following the APAC expansion.\n\n**⚠️ Alert:** Singapore branch is projecting a stockout of Component X in 48 hours.\n\n*Would you like me to draft an emergency Purchase Order for Component X?*`;
-      
-      const chars = mockResponse.split('');
-      for (const char of chars) {
-        await new Promise(resolve => setTimeout(resolve, 15)); // Fast premium typing effect
-        yield { text: () => char };
-      }
-    }
-    
-    return createMockStream();
+    throw new Error('API_KEY_MISSING');
   }
 
   try {
