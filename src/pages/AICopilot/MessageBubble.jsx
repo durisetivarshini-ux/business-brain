@@ -52,34 +52,7 @@ export function MessageBubble({ msg, isLast, isTyping, onRegenerate }) {
         )}
 
         {/* Dynamic Content Rendering */}
-        {msg.type === 'setup' ? (
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-[#F59E0B]">⚠️</span> AI Setup Required
-            </h3>
-            <p className="text-sm text-[#94A3B8]">To use the Business Brain Copilot, you need to connect a Google Gemini API Key.</p>
-            <ol className="list-decimal list-inside text-sm text-[#94A3B8] space-y-1">
-              <li>Get a free API key from <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[#00D4FF] hover:underline">Google AI Studio</a></li>
-              <li>Paste your key securely below:</li>
-            </ol>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const key = e.target.apiKey.value;
-              if (key) {
-                localStorage.setItem('GEMINI_API_KEY', key);
-                window.location.reload();
-              }
-            }} className="flex gap-2 mt-2">
-              <input 
-                type="password" 
-                name="apiKey" 
-                placeholder="AIzaSy..." 
-                className="flex-1 bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#5B5FFF]"
-              />
-              <button type="submit" className="bg-[#5B5FFF] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#4f46e5]">Connect</button>
-            </form>
-          </div>
-        ) : msg.type === 'chart_revenue' ? (
+        {msg.type === 'chart_revenue' ? (
           <div>
             <div className="prose prose-invert prose-sm max-w-none mb-4">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
