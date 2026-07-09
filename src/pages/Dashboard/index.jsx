@@ -24,13 +24,14 @@ export function DashboardPage() {
       {/* Main Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
         
-        {/* Left Column (Main Charts) */}
+        {/* Left Column (Main Charts & Tables) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           <RevenueChart />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SalesChart />
             <CustomerChart />
           </div>
+          <RecentTransactionsTable />
         </div>
 
         {/* Right Column (Widgets) */}
@@ -41,10 +42,6 @@ export function DashboardPage() {
         </div>
 
       </div>
-
-      {/* Functional Table Implementation */}
-      <RecentTransactionsTable />
-      
     </div>
   );
 }

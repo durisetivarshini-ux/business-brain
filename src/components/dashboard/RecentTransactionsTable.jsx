@@ -30,7 +30,7 @@ export function RecentTransactionsTable() {
   ];
 
   return (
-    <div className="w-full mt-6">
+    <div className="w-full">
       <DataTable 
         data={transactions} 
         columns={columns} 
