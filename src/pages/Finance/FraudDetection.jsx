@@ -25,32 +25,40 @@ const actionConfig = {
   approve: {
     color: '#10B981',
     icon: <CheckCircle size={22} />,
+    smallIcon: <CheckCircle size={14} />,
     label: 'Approved & Released',
+    shortLabel: 'Approved',
     message: (id) => `Transaction ${id} has been approved and released to the beneficiary. Compliance log updated. No further action required.`,
   },
   block: {
     color: '#EF4444',
     icon: <XCircle size={22} />,
+    smallIcon: <XCircle size={14} />,
     label: 'Blocked & Flagged',
+    shortLabel: 'Blocked',
     message: (id) => `Transaction ${id} has been blocked and frozen. Flagged for internal audit. The account has been placed under temporary monitoring.`,
   },
   escalate: {
     color: '#F59E0B',
     icon: <Clock size={22} />,
+    smallIcon: <Clock size={14} />,
     label: 'Escalated to Compliance',
+    shortLabel: 'Escalated',
     message: (id) => `Transaction ${id} has been escalated to the Compliance team. A case file has been opened. Expected review within 24 hours.`,
   },
 };
 
-function ReviewModal({ alert, onClose }) {
+function ReviewModal({ alert, onClose, onActionCompleted }) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);  // null | 'approve' | 'block' | 'escalate'
+  const [result, setResult] = useState(null);
 
   const handleAction = async (type) => {
     setLoading(type);
     await new Promise(r => setTimeout(r, 1000));
     setLoading(false);
     setResult(type);
+    onActionCompleted(alert.id, type); // Update the parent table state
+    
     if (type === 'approve') toast.success(`Transaction ${alert.id} approved and released.`);
     else if (type === 'block') toast.error(`Transaction ${alert.id} blocked and flagged for audit.`);
     else toast(`Transaction ${alert.id} escalated to compliance team.`, { icon: '⚠️' });
@@ -168,6 +176,11 @@ function ReviewModal({ alert, onClose }) {
 
 export function FraudDetection() {
   const [reviewAlert, setReviewAlert] = useState(null);
+  const [actionedAlerts, setActionedAlerts] = useState({}); // { [id]: 'approve' | 'block' | 'escalate' }
+
+  const handleActionCompleted = (id, type) => {
+    setActionedAlerts(prev => ({ ...prev, [id]: type }));
+  };
 
   return (
     <GlassCard className="p-0 border-[#EF4444]/20 bg-[#0B1120]/60 mt-6 overflow-hidden flex flex-col">
@@ -199,42 +212,56 @@ export function FraudDetection() {
             </tr>
           </thead>
           <tbody className="text-sm">
-            {fraudAlerts.map((alert, i) => (
-              <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                <td className="p-4">
-                  <p className="font-bold text-white">{alert.account}</p>
-                  <p className="text-xs text-[#94A3B8] font-mono">{alert.id}</p>
-                </td>
-                <td className="p-4 font-bold text-white">${alert.amount.toLocaleString()}</td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${alert.risk}%`, backgroundColor: alert.risk > 80 ? '#EF4444' : '#F59E0B' }} />
+            {fraudAlerts.map((alert, i) => {
+              const actionTaken = actionedAlerts[alert.id];
+              const cfg = actionTaken ? actionConfig[actionTaken] : null;
+
+              return (
+                <tr key={i} className={`border-b border-white/5 transition-colors ${actionTaken ? 'bg-white/[0.02]' : 'hover:bg-white/5'}`}>
+                  <td className="p-4">
+                    <p className={`font-bold ${actionTaken && actionTaken !== 'escalate' ? 'text-[#94A3B8]' : 'text-white'}`}>{alert.account}</p>
+                    <p className="text-xs text-[#94A3B8] font-mono">{alert.id}</p>
+                  </td>
+                  <td className={`p-4 font-bold ${actionTaken && actionTaken !== 'escalate' ? 'text-[#94A3B8]' : 'text-white'}`}>${alert.amount.toLocaleString()}</td>
+                  <td className="p-4">
+                    <div className={`flex items-center gap-2 ${actionTaken && actionTaken !== 'escalate' ? 'opacity-50 grayscale' : ''}`}>
+                      <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${alert.risk}%`, backgroundColor: alert.risk > 80 ? '#EF4444' : '#F59E0B' }} />
+                      </div>
+                      <span className={`text-xs font-bold ${alert.risk > 80 ? 'text-[#EF4444]' : 'text-[#F59E0B]'}`}>{alert.risk}/100</span>
                     </div>
-                    <span className={`text-xs font-bold ${alert.risk > 80 ? 'text-[#EF4444]' : 'text-[#F59E0B]'}`}>{alert.risk}/100</span>
-                  </div>
-                </td>
-                <td className="p-4 max-w-xs">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle size={14} className={`${alert.risk > 80 ? 'text-[#EF4444]' : 'text-[#F59E0B]'} shrink-0 mt-0.5`} />
-                    <p className="text-xs text-[#94A3B8] leading-relaxed">{alert.reason}</p>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <button
-                    onClick={() => setReviewAlert(alert)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold hover:bg-[#EF4444]/20 transition-colors"
-                  >
-                    Review <ArrowUpRight size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className={`p-4 max-w-xs ${actionTaken && actionTaken !== 'escalate' ? 'opacity-50' : ''}`}>
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={14} className={`${alert.risk > 80 ? 'text-[#EF4444]' : 'text-[#F59E0B]'} shrink-0 mt-0.5`} />
+                      <p className="text-xs text-[#94A3B8] leading-relaxed">{alert.reason}</p>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    {actionTaken ? (
+                      <div 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold"
+                        style={{ backgroundColor: `${cfg.color}10`, borderColor: `${cfg.color}30`, color: cfg.color }}
+                      >
+                        {cfg.smallIcon} {cfg.shortLabel}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setReviewAlert(alert)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold hover:bg-[#EF4444]/20 transition-colors"
+                      >
+                        Review <ArrowUpRight size={14} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {reviewAlert && <ReviewModal alert={reviewAlert} onClose={() => setReviewAlert(null)} />}
+      {reviewAlert && <ReviewModal alert={reviewAlert} onClose={() => setReviewAlert(null)} onActionCompleted={handleActionCompleted} />}
     </GlassCard>
   );
 }
