@@ -275,17 +275,24 @@ export function CopilotPage() {
       let errorMsg = `**Error communicating with AI:** \`${error.message}\``;
       
       if (error.message === 'API_KEY_MISSING') {
-        errorMsg = `### ⚠️ AI Setup Required\n\nTo use the Business Brain Copilot, you need to connect a Google Gemini API Key.\n\n1. Get a free API key from [Google AI Studio](https://aistudio.google.com/)\n2. Add it to your \`.env\` file as \`VITE_GEMINI_API_KEY=your_key_here\`\n3. Restart the development server.`;
+        setMessages(prev => {
+          const withoutLast = prev.slice(0, -1);
+          return [...withoutLast, {
+            role: 'assistant',
+            type: 'setup',
+            content: ''
+          }];
+        });
+      } else {
+        setMessages(prev => {
+          const withoutLast = prev.slice(0, -1);
+          return [...withoutLast, {
+            role: 'assistant',
+            type: 'markdown',
+            content: errorMsg
+          }];
+        });
       }
-      
-      setMessages(prev => {
-        const withoutLast = prev.slice(0, -1); // Remove the empty streaming message
-        return [...withoutLast, {
-          role: 'assistant',
-          type: 'markdown',
-          content: errorMsg
-        }];
-      });
       setIsTyping(false);
     }
   };

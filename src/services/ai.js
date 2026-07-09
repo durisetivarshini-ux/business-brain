@@ -1,8 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the API. If no key is present, we'll fall back gracefully in the components.
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+// Helper to get the API dynamically so the user can add it via UI
+function getGenAI() {
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const localKey = localStorage.getItem('GEMINI_API_KEY');
+  const key = localKey || envKey;
+  return key && key !== 'your-api-key-here' ? new GoogleGenerativeAI(key) : null;
+}
 
 // The overarching system prompt for the Business Brain persona
 const SYSTEM_PROMPT = `
@@ -15,6 +19,7 @@ Be concise but thorough.
 `;
 
 export async function generateAIResponse(prompt, history = []) {
+  const genAI = getGenAI();
   if (!genAI) {
     throw new Error('API_KEY_MISSING');
   }
