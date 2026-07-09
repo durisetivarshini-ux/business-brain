@@ -1,8 +1,95 @@
-import React from 'react';
-import { Bot, Sparkles, FileText, TrendingUp, Lightbulb } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bot, Sparkles, FileText, TrendingUp, Lightbulb, X, Loader2, ChevronRight, ChevronDown, CheckCircle } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
+import toast from 'react-hot-toast';
+
+const aiRecommendations = [
+  { title: 'Invest in Bonds', text: 'AI detected a high-yield opportunity in Government Bonds with ~8.5% annual return. Suggested allocation: ₹1.5 Cr from liquid reserves.', color: '#10B981' },
+  { title: 'Reduce Vendor Payments Delay', text: '3 vendor invoices overdue by >15 days. Automating payment reminders could reduce penalties by ₹12L per quarter.', color: '#F59E0B' },
+  { title: 'Optimize Tax Deductions', text: 'Q4 depreciation filing can save an estimated ₹48L. AI recommends filing before November 30 to maximize benefit.', color: '#00D4FF' },
+];
+
+const forecastMonths = [
+  { month: 'Aug 2026', revenue: '₹19.8 Cr', growth: '+7%', color: '#10B981' },
+  { month: 'Sep 2026', revenue: '₹21.4 Cr', growth: '+8%', color: '#10B981' },
+  { month: 'Oct 2026', revenue: '₹23.1 Cr', growth: '+8%', color: '#10B981' },
+  { month: 'Q4 Total', revenue: '₹64.3 Cr', growth: '+18%', color: '#00D4FF' },
+];
+
+function ForecastModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-md rounded-2xl border border-[#10B981]/20 bg-[#0B1120] shadow-2xl p-8 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#10B981]/20 flex items-center justify-center text-[#10B981]"><TrendingUp size={20} /></div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Revenue Forecast</h2>
+            <p className="text-xs text-[#94A3B8]">AI Prediction – Q4 2026 · Confidence: 91%</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {forecastMonths.map((item, i) => (
+            <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+              <span className="text-sm font-semibold text-[#94A3B8]">{item.month}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-base font-bold text-white">{item.revenue}</span>
+                <span className="text-xs font-bold px-2 py-1 rounded-md" style={{ color: item.color, backgroundColor: `${item.color}20` }}>{item.growth}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-4 rounded-xl bg-[#10B981]/10 border border-[#10B981]/20">
+          <p className="text-xs text-[#10B981] font-semibold">📈 AI Insight: Revenue is projected to grow 18% in Q4, driven by enterprise renewals and new market expansion in North India.</p>
+        </div>
+        <button onClick={onClose} className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-[#050816] text-sm font-bold hover:scale-[1.02] transition-all">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecommendationsModal({ onClose }) {
+  const [expanded, setExpanded] = useState(null);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-lg rounded-2xl border border-[#10B981]/20 bg-[#0B1120] shadow-2xl p-8 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#10B981]/20 flex items-center justify-center text-[#10B981]"><Lightbulb size={20} /></div>
+          <div>
+            <h2 className="text-xl font-bold text-white">AI Recommendations</h2>
+            <p className="text-xs text-[#94A3B8]">Financial Copilot – Priority Actions</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          {aiRecommendations.map((r, i) => (
+            <div key={i} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
+              <button className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors" onClick={() => setExpanded(expanded === i ? null : i)}>
+                <span className="text-sm font-bold text-white">{r.title}</span>
+                {expanded === i ? <ChevronDown size={16} className="text-[#94A3B8]" /> : <ChevronRight size={16} className="text-[#94A3B8]" />}
+              </button>
+              {expanded === i && (
+                <div className="px-4 pb-4">
+                  <p className="text-sm text-[#94A3B8] leading-relaxed mb-3">{r.text}</p>
+                  <button onClick={() => { toast.success(`Action queued: ${r.title}`); onClose(); }} className="px-4 py-2 rounded-lg text-xs font-bold text-white hover:scale-[1.02] transition-all" style={{ background: `linear-gradient(135deg, ${r.color}, #00D4FF)` }}>
+                    Execute Action →
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">Close</button>
+      </div>
+    </div>
+  );
+}
 
 export function AIFinancialAdvisor() {
+  const [activeModal, setActiveModal] = useState(null);
+
   const insights = [
     { text: "Revenue increased by 22% compared to Q2.", highlight: "increased by 22%" },
     { text: "Operating expenses reduced by 4% via automation.", highlight: "reduced by 4%" },
@@ -10,6 +97,15 @@ export function AIFinancialAdvisor() {
     { text: "Three invoices are overdue by > 15 days.", highlight: "overdue" },
     { text: "Suggested investment opportunity detected in Bonds.", highlight: "Suggested investment opportunity" },
   ];
+
+  const handleGenerateReport = () => {
+    const promise = new Promise(r => setTimeout(r, 1600));
+    toast.promise(promise, {
+      loading: 'Generating Financial Report...',
+      success: 'Financial Report is ready! Download will start shortly.',
+      error: 'Failed to generate report.',
+    });
+  };
 
   return (
     <GlassCard className="p-8 border-[#10B981]/30 bg-gradient-to-br from-[#0B1120]/90 to-[#050816]/90 relative overflow-hidden shadow-[0_10px_40px_rgba(16,185,129,0.1)]">
@@ -41,13 +137,22 @@ export function AIFinancialAdvisor() {
           </p>
 
           <div className="flex flex-col gap-3">
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-[#050816] text-sm font-bold shadow-lg shadow-[#10B981]/20 transition-transform hover:scale-[1.02]">
+            <button
+              onClick={handleGenerateReport}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-[#050816] text-sm font-bold shadow-lg shadow-[#10B981]/20 transition-transform hover:scale-[1.02]"
+            >
               <FileText size={16} /> Generate Financial Report
             </button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
+            <button
+              onClick={() => setActiveModal('forecast')}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+            >
               <TrendingUp size={16} /> Forecast Revenue
             </button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
+            <button
+              onClick={() => setActiveModal('recommendations')}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+            >
               <Lightbulb size={16} /> View AI Recommendations
             </button>
           </div>
@@ -77,6 +182,10 @@ export function AIFinancialAdvisor() {
         </div>
 
       </div>
+
+      {/* Modals */}
+      {activeModal === 'forecast' && <ForecastModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'recommendations' && <RecommendationsModal onClose={() => setActiveModal(null)} />}
     </GlassCard>
   );
 }
