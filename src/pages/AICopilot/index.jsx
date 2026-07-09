@@ -270,19 +270,28 @@ export function CopilotPage() {
   const abortControllerRef = useRef(null);
   const scrollRef = useRef(null);
 
+  const [hasApiKey, setHasApiKey] = useState(true);
+
   // Initialize a new chat on mount if needed
   useEffect(() => {
     if (!currentChatId && messages.length === 0) {
       setCurrentChatId(Date.now().toString());
     }
+    
+    // Check if API key exists
+    const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const localKey = localStorage.getItem('GEMINI_API_KEY');
+    const key = localKey || envKey;
+    if (!key || key === 'your-api-key-here') {
+      setHasApiKey(false);
+    }
   }, []);
 
-  // Sync to local storage
+  // ... (rest of the effect hooks)
   useEffect(() => {
     localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
   }, [chatHistory]);
 
-  // Auto-save active chat to history
   useEffect(() => {
     if (messages.length > 0 && currentChatId) {
       setChatHistory(prev => {
@@ -319,6 +328,7 @@ export function CopilotPage() {
     }
   }, [messages, isTyping]);
 
+  // ... [Skipping the rest of the functions for brevity, no changes needed to them]
   const handleStopGenerating = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -407,14 +417,7 @@ export function CopilotPage() {
       let errorMsg = `**Error communicating with AI:** \`${error.message}\``;
       
       if (error.message === 'API_KEY_MISSING') {
-        setMessages(prev => {
-          const withoutLast = prev.slice(0, -1);
-          return [...withoutLast, {
-            role: 'assistant',
-            type: 'setup',
-            content: ''
-          }];
-        });
+        setHasApiKey(false); // Switch to full-screen setup mode
       } else {
         setMessages(prev => {
           const withoutLast = prev.slice(0, -1);
@@ -550,7 +553,7 @@ export function CopilotPage() {
                   </p>
                 </div>
               </div>
-              {messages.length > 0 && (
+              {messages.length > 0 && hasApiKey && (
                 <button
                   onClick={handleNewChat}
                   className="functional-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 text-xs font-bold transition-colors"
@@ -559,6 +562,56 @@ export function CopilotPage() {
                 </button>
               )}
             </div>
+
+            {/* If missing API Key, show full page overlay */}
+            {!hasApiKey ? (
+              <div className="flex-1 flex items-center justify-center p-8 bg-[#0B1120]">
+                <div className="max-w-lg w-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-8 border border-white/10 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-[#5B5FFF]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                  
+                  <div className="relative z-10 space-y-6">
+                    <div className="w-16 h-16 rounded-2xl bg-[#00D4FF]/10 flex items-center justify-center border border-[#00D4FF]/20">
+                      <Sparkles size={32} className="text-[#00D4FF]" />
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-2xl font-bold text-white mb-2">Connect Your AI Brain</h2>
+                      <p className="text-[#94A3B8]">To unlock the full potential of Business Brain Copilot, you need a Google Gemini API Key.</p>
+                    </div>
+
+                    <div className="bg-black/30 rounded-xl p-5 border border-white/5 space-y-4">
+                      <ol className="list-decimal list-inside text-sm text-[#F8FAFC] space-y-3">
+                        <li>Visit <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[#00D4FF] hover:underline font-bold">Google AI Studio</a></li>
+                        <li>Click "Get API Key" and copy your free key.</li>
+                        <li>Paste it securely below to activate the Copilot.</li>
+                      </ol>
+                    </div>
+
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const key = e.target.apiKey.value;
+                      if (key) {
+                        localStorage.setItem('GEMINI_API_KEY', key);
+                        window.location.reload();
+                      }
+                    }} className="space-y-3">
+                      <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">Gemini API Key</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="password" 
+                          name="apiKey" 
+                          placeholder="AIzaSy..." 
+                          className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#5B5FFF] focus:ring-1 focus:ring-[#5B5FFF]/30 transition-all"
+                        />
+                        <button type="submit" className="bg-gradient-to-r from-[#5B5FFF] to-[#7C3AED] text-white px-6 py-3 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(91,95,255,0.4)] hover:scale-105 transition-all">
+                          Connect
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            ) : (
 
             {/* Messages */}
             <div key={chatKey} ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar flex flex-col scroll-smooth pb-4">
@@ -662,7 +715,8 @@ export function CopilotPage() {
               <div className="text-center mt-2 text-[10px] text-[#94A3B8] font-medium tracking-wide">
                 Business Copilot uses advanced AI models. Verify critical financial data before finalizing reports.
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Right Panel */}
