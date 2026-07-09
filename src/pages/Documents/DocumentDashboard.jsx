@@ -19,11 +19,11 @@ export function DocumentDashboard() {
       </section>
 
       {/* 3. Visual Vault & Analytics Layer */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-auto lg:h-[500px]">
-        <div className="lg:col-span-2 h-[500px] lg:h-full">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 flex">
           <FileVault />
         </div>
-        <div className="h-[400px] lg:h-full">
+        <div className="flex">
           <StorageCharts />
         </div>
       </section>
