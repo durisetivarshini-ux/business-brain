@@ -47,7 +47,7 @@ function ChatModal({ ticket, onClose }) {
   );
 }
 
-function OptionsMenu({ ticket, onClose }) {
+function OptionsMenu({ ticket, onClose, onAction }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
       <div className="w-full max-w-xs rounded-xl border border-white/10 bg-[#0B1120] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -59,13 +59,13 @@ function OptionsMenu({ ticket, onClose }) {
           <button onClick={onClose} className="text-[#94A3B8] hover:text-white"><X size={16} /></button>
         </div>
         <div className="flex flex-col p-2">
-          <button onClick={() => { toast.success('Ticket assigned to you.'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left">
+          <button onClick={() => { onAction(ticket.id, 'assigned'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left">
             <UserPlus size={16} /> Assign to me
           </button>
-          <button onClick={() => { toast.success('Ticket escalated.'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#F59E0B] hover:text-white hover:bg-[#F59E0B]/10 rounded-lg transition-colors text-left">
+          <button onClick={() => { onAction(ticket.id, 'escalated'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#F59E0B] hover:text-white hover:bg-[#F59E0B]/10 rounded-lg transition-colors text-left">
             <AlertCircle size={16} /> Escalate Ticket
           </button>
-          <button onClick={() => { toast.success('Ticket resolved and closed.'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#10B981] hover:text-white hover:bg-[#10B981]/10 rounded-lg transition-colors text-left">
+          <button onClick={() => { onAction(ticket.id, 'resolved'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#10B981] hover:text-white hover:bg-[#10B981]/10 rounded-lg transition-colors text-left">
             <CheckSquare size={16} /> Mark as Resolved
           </button>
         </div>
@@ -74,7 +74,7 @@ function OptionsMenu({ ticket, onClose }) {
   );
 }
 
-function QueueModal({ tickets, onClose, onOpenChat, onOpenOptions }) {
+function QueueModal({ tickets, actionedTickets, onClose, onOpenChat, onOpenOptions }) {
   const [search, setSearch] = useState('');
   const filtered = tickets.filter(t => t.customer.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase()) || t.issue.toLowerCase().includes(search.toLowerCase()));
 
@@ -100,30 +100,43 @@ function QueueModal({ tickets, onClose, onOpenChat, onOpenOptions }) {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {filtered.map((ticket, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group">
-              <div className="flex items-center gap-4">
-                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ticket.color, boxShadow: `0 0 10px ${ticket.color}` }}></div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-bold text-sm">{ticket.customer}</span>
-                    <span className="text-[10px] text-[#94A3B8] border border-white/10 px-1.5 py-0.5 rounded">{ticket.id}</span>
+          {filtered.map((ticket, i) => {
+            const action = actionedTickets[ticket.id];
+            
+            return (
+              <div key={i} className={`flex items-center justify-between p-3 rounded-xl border transition-colors group ${action ? 'bg-white/[0.02] border-white/5 opacity-60' : 'hover:bg-white/5 border-transparent hover:border-white/5'}`}>
+                <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ticket.color, boxShadow: `0 0 10px ${ticket.color}` }}></div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-bold text-sm">{ticket.customer}</span>
+                      <span className="text-[10px] text-[#94A3B8] border border-white/10 px-1.5 py-0.5 rounded">{ticket.id}</span>
+                    </div>
+                    <p className="text-xs text-[#94A3B8]">{ticket.issue}</p>
                   </div>
-                  <p className="text-xs text-[#94A3B8]">{ticket.issue}</p>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="hidden sm:flex items-center gap-4 text-xs">
+                    <span className="flex items-center gap-1 text-[#94A3B8]"><Clock size={12} /> {ticket.time}</span>
+                    <span className="flex items-center gap-1 font-bold" style={{ color: ticket.color }}><Tag size={12} /> {ticket.priority}</span>
+                  </div>
+                  
+                  {action ? (
+                    <div className="flex items-center">
+                      {action === 'assigned' && <span className="text-xs font-bold text-[#5B5FFF] bg-[#5B5FFF]/10 border border-[#5B5FFF]/20 px-2 py-1 rounded">Assigned</span>}
+                      {action === 'escalated' && <span className="text-xs font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2 py-1 rounded">Escalated</span>}
+                      {action === 'resolved' && <span className="text-xs font-bold text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-2 py-1 rounded">Resolved</span>}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => onOpenChat(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MessageCircle size={14} /></button>
+                      <button onClick={() => onOpenOptions(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MoreHorizontal size={14} /></button>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="hidden sm:flex items-center gap-4 text-xs">
-                  <span className="flex items-center gap-1 text-[#94A3B8]"><Clock size={12} /> {ticket.time}</span>
-                  <span className="flex items-center gap-1 font-bold" style={{ color: ticket.color }}><Tag size={12} /> {ticket.priority}</span>
-                </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => onOpenChat(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MessageCircle size={14} /></button>
-                  <button onClick={() => onOpenOptions(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MoreHorizontal size={14} /></button>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {filtered.length === 0 && (
             <p className="text-center text-[#94A3B8] text-sm py-10">No tickets found matching "{search}"</p>
           )}
@@ -137,6 +150,7 @@ export function TicketBoard() {
   const [showQueue, setShowQueue] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
   const [activeOptions, setActiveOptions] = useState(null);
+  const [actionedTickets, setActionedTickets] = useState({});
 
   const tickets = [
     { id: "T-8492", customer: "Acme Corp", issue: "API Integration Error", priority: "Critical", status: "Open", time: "10m ago", color: "#EC4899" },
@@ -148,6 +162,13 @@ export function TicketBoard() {
     { id: "T-8487", customer: "Priya Sharma", issue: "Refund Request", priority: "Medium", status: "Pending", time: "6h ago", color: "#00D4FF" },
     { id: "T-8486", customer: "DataSys Inc", issue: "Database Sync Error", priority: "Critical", status: "Open", time: "7h ago", color: "#EC4899" },
   ];
+
+  const handleAction = (id, actionType) => {
+    setActionedTickets(prev => ({ ...prev, [id]: actionType }));
+    if (actionType === 'assigned') toast.success(`Ticket ${id} assigned to you.`);
+    if (actionType === 'escalated') toast('Ticket escalated to Level 2.', { icon: '⚠️' });
+    if (actionType === 'resolved') toast.success(`Ticket ${id} marked as resolved.`);
+  };
 
   const topTickets = tickets.slice(0, 4);
 
@@ -167,48 +188,61 @@ export function TicketBoard() {
         </div>
 
         <div className="flex flex-col gap-3 flex-1 relative z-10">
-          {topTickets.map((ticket, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ticket.color, boxShadow: `0 0 10px ${ticket.color}` }}></div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-bold text-sm group-hover:text-[#5B5FFF] transition-colors">{ticket.customer}</span>
-                    <span className="text-[10px] text-[#94A3B8] border border-white/10 px-1.5 py-0.5 rounded">{ticket.id}</span>
+          {topTickets.map((ticket, i) => {
+            const action = actionedTickets[ticket.id];
+            
+            return (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className={`flex items-center justify-between p-4 rounded-xl border transition-all group ${action ? 'bg-white/[0.02] border-white/5 opacity-60' : 'bg-white/5 border-white/5 hover:border-white/10 hover:bg-white/10'}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ticket.color, boxShadow: `0 0 10px ${ticket.color}` }}></div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-bold text-sm group-hover:text-[#5B5FFF] transition-colors">{ticket.customer}</span>
+                      <span className="text-[10px] text-[#94A3B8] border border-white/10 px-1.5 py-0.5 rounded">{ticket.id}</span>
+                    </div>
+                    <p className="text-xs text-[#94A3B8] truncate max-w-[200px] sm:max-w-[300px]">{ticket.issue}</p>
                   </div>
-                  <p className="text-xs text-[#94A3B8] truncate max-w-[200px] sm:max-w-[300px]">{ticket.issue}</p>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-bold" style={{ color: ticket.color }}>{ticket.priority}</span>
-                  <span className="text-[10px] text-[#94A3B8]">{ticket.time}</span>
+                <div className="flex items-center gap-4">
+                  <div className="hidden sm:flex flex-col items-end">
+                    <span className="text-xs font-bold" style={{ color: ticket.color }}>{ticket.priority}</span>
+                    <span className="text-[10px] text-[#94A3B8]">{ticket.time}</span>
+                  </div>
+                  
+                  {action ? (
+                    <div className="flex items-center min-w-[72px] justify-end">
+                      {action === 'assigned' && <span className="text-[11px] font-bold text-[#5B5FFF] bg-[#5B5FFF]/10 border border-[#5B5FFF]/20 px-2 py-1 rounded">Assigned</span>}
+                      {action === 'escalated' && <span className="text-[11px] font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2 py-1 rounded">Escalated</span>}
+                      {action === 'resolved' && <span className="text-[11px] font-bold text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-2 py-1 rounded">Resolved</span>}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setActiveChat(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
+                        <MessageCircle size={14} />
+                      </button>
+                      <button onClick={() => setActiveOptions(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
+                        <MoreHorizontal size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setActiveChat(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
-                    <MessageCircle size={14} />
-                  </button>
-                  <button onClick={() => setActiveOptions(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
-                    <MoreHorizontal size={14} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       </GlassCard>
 
       <AnimatePresence>
-        {showQueue && <QueueModal tickets={tickets} onClose={() => setShowQueue(false)} onOpenChat={setActiveChat} onOpenOptions={setActiveOptions} />}
+        {showQueue && <QueueModal tickets={tickets} actionedTickets={actionedTickets} onClose={() => setShowQueue(false)} onOpenChat={setActiveChat} onOpenOptions={setActiveOptions} />}
         {activeChat && <ChatModal ticket={activeChat} onClose={() => setActiveChat(null)} />}
-        {activeOptions && <OptionsMenu ticket={activeOptions} onClose={() => setActiveOptions(null)} />}
+        {activeOptions && <OptionsMenu ticket={activeOptions} onClose={() => setActiveOptions(null)} onAction={handleAction} />}
       </AnimatePresence>
     </>
   );
