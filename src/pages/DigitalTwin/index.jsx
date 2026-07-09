@@ -68,7 +68,7 @@ export function DigitalTwinPage() {
 
   const cx = svgSize.w / 2;
   const cy = svgSize.h / 2;
-  const R  = Math.min(svgSize.w, svgSize.h) * 0.33;
+  const R  = Math.min(svgSize.w, svgSize.h) * 0.28;
 
   const nodePos = NODES.map(n => {
     const rad = (n.angle * Math.PI) / 180;
