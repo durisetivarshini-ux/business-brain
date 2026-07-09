@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, FileText, TrendingUp, Search, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Bot, Sparkles, FileText, TrendingUp, Search, X, ChevronDown, ChevronRight, Download, CheckCircle } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import toast from 'react-hot-toast';
 
@@ -25,21 +25,14 @@ function RecommendationsModal({ onClose }) {
         <div className="flex flex-col gap-3 mt-6">
           {recommendationDetails.map((r, i) => (
             <div key={i} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
-              <button
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
-                onClick={() => setExpanded(expanded === i ? null : i)}
-              >
+              <button className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors" onClick={() => setExpanded(expanded === i ? null : i)}>
                 <span className="text-sm font-bold text-white">{r.title}</span>
                 {expanded === i ? <ChevronDown size={16} className="text-[#94A3B8]" /> : <ChevronRight size={16} className="text-[#94A3B8]" />}
               </button>
               {expanded === i && (
                 <div className="px-4 pb-4">
                   <p className="text-sm text-[#94A3B8] leading-relaxed">{r.text}</p>
-                  <button
-                    onClick={() => { toast.success(`Action queued: ${r.title}`); onClose(); }}
-                    className="mt-3 px-4 py-2 rounded-lg text-xs font-bold text-white transition-all hover:scale-[1.02]"
-                    style={{ background: `linear-gradient(135deg, ${r.color}, #00D4FF)` }}
-                  >
+                  <button onClick={() => { toast.success(`Action queued: ${r.title}`); onClose(); }} className="mt-3 px-4 py-2 rounded-lg text-xs font-bold text-white transition-all hover:scale-[1.02]" style={{ background: `linear-gradient(135deg, ${r.color}, #00D4FF)` }}>
                     Take Action →
                   </button>
                 </div>
@@ -47,9 +40,7 @@ function RecommendationsModal({ onClose }) {
             </div>
           ))}
         </div>
-        <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
-          Close
-        </button>
+        <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">Close</button>
       </div>
     </div>
   );
@@ -84,12 +75,52 @@ function ForecastModal({ onClose }) {
           ))}
         </div>
         <p className="text-xs text-[#94A3B8] mt-4 text-center">Confidence: High (88%) · Updated 2 hours ago</p>
-        <button onClick={onClose} className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-white text-sm font-bold hover:scale-[1.02] transition-all">
-          Close
-        </button>
+        <button onClick={onClose} className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-white text-sm font-bold hover:scale-[1.02] transition-all">Close</button>
       </div>
     </div>
   );
+}
+
+// Helper: generate and download a real CSV file
+function downloadSalesReport() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN');
+  const rows = [
+    ['Business Brain – Sales Report', '', '', ''],
+    [`Generated on: ${dateStr}`, '', '', ''],
+    ['', '', '', ''],
+    ['Metric', 'Current Value', 'Target', 'Status'],
+    ['Total Revenue', '₹28.6 Cr', '₹35 Cr', '82%'],
+    ['New Leads', '2,480', '3,000', '83%'],
+    ['Orders Processed', '1,186', '1,400', '85%'],
+    ['Conversion Rate', '41%', '50%', '82%'],
+    ['Avg Deal Size', '₹2.8 L', '₹3.5 L', '80%'],
+    ['Monthly Target', '92%', '100%', '92%'],
+    ['', '', '', ''],
+    ['AI Forecast – Q4 2026', '', '', ''],
+    ['Month', 'Projected Revenue', 'Growth', 'Confidence'],
+    ['October', '₹9.2 Cr', '+8%', 'High'],
+    ['November', '₹10.4 Cr', '+13%', 'High'],
+    ['December', '₹11.8 Cr', '+13.5%', 'High'],
+    ['Q4 Total', '₹31.4 Cr', '+22%', '88%'],
+    ['', '', '', ''],
+    ['Top Opportunities', '', '', ''],
+    ['Client', 'Type', 'Value', 'Probability'],
+    ['Nexus Industries', 'Upsell', '$45,000', '95%'],
+    ['Healthcare Sector', 'New Market', '$1,20,000', '80%'],
+    ['Global Logistics', 'Cross-sell', '$28,000', '75%'],
+  ];
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Sales_Report_${now.toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export function AISalesAssistant() {
@@ -103,30 +134,27 @@ export function AISalesAssistant() {
     { text: "Sales target can be achieved three days early based on pipeline.", highlight: "achieved three days early" },
   ];
 
-  const handleGenerateReport = () => {
-    const promise = new Promise(r => setTimeout(r, 1500));
+  const handleGenerateReport = async () => {
+    const promise = new Promise(r => setTimeout(r, 1200));
     toast.promise(promise, {
-      loading: 'Generating sales report...',
-      success: 'Sales Report ready! Download will start shortly.',
+      loading: 'Generating Sales Report...',
+      success: 'Sales Report downloaded!',
       error: 'Failed to generate report.',
     });
+    await promise;
+    downloadSalesReport();
   };
 
   return (
     <GlassCard className="p-8 border-[#10B981]/30 bg-gradient-to-br from-[#0B1120]/90 to-[#050816]/90 relative overflow-hidden shadow-[0_10px_40px_rgba(16,185,129,0.15)]">
-      
-      {/* Abstract Background Glows */}
       <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[150%] bg-[#10B981]/10 blur-[80px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-50%] left-[-10%] w-[40%] h-[100%] bg-[#00D4FF]/10 blur-[80px] rounded-full pointer-events-none" />
 
       <div className="flex flex-col md:flex-row gap-8 relative z-10">
-        
-        {/* Left: AI Intro */}
         <div className="md:w-1/3 flex flex-col justify-center border-r border-white/10 pr-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/20 border border-[#10B981]/30 text-[#10B981] text-xs font-bold uppercase tracking-wider mb-6 self-start">
             <Sparkles size={14} /> Pipeline AI Active
           </div>
-          
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#10B981] to-[#00D4FF] flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
               <Bot size={28} className="text-[#050816]" />
@@ -136,34 +164,22 @@ export function AISalesAssistant() {
               <p className="text-sm font-semibold text-[#94A3B8]">Sales Insights</p>
             </div>
           </div>
-
           <p className="text-[#94A3B8] text-sm leading-relaxed mb-8">
             I've analyzed your current CRM pipeline, historical deal closures, and executive activity. Here are the most critical actions to secure revenue.
           </p>
-
           <div className="flex flex-col gap-3">
-            <button
-              onClick={() => setActiveModal('recommendations')}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-white text-sm font-bold shadow-lg shadow-[#10B981]/20 transition-transform hover:scale-[1.02]"
-            >
+            <button onClick={() => setActiveModal('recommendations')} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-white text-sm font-bold shadow-lg shadow-[#10B981]/20 transition-transform hover:scale-[1.02]">
               <Search size={16} /> AI Recommendations
             </button>
-            <button
-              onClick={() => setActiveModal('forecast')}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
-            >
+            <button onClick={() => setActiveModal('forecast')} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
               <TrendingUp size={16} /> View Forecast
             </button>
-            <button
-              onClick={handleGenerateReport}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
-            >
-              <FileText size={16} /> Generate Sales Report
+            <button onClick={handleGenerateReport} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
+              <Download size={16} /> Generate Sales Report
             </button>
           </div>
         </div>
 
-        {/* Right: Insights List */}
         <div className="md:w-2/3 flex flex-col justify-center">
           <div className="space-y-4">
             {insights.map((insight, i) => (
@@ -185,10 +201,8 @@ export function AISalesAssistant() {
             ))}
           </div>
         </div>
-
       </div>
 
-      {/* Modals */}
       {activeModal === 'recommendations' && <RecommendationsModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'forecast' && <ForecastModal onClose={() => setActiveModal(null)} />}
     </GlassCard>

@@ -1,7 +1,55 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, FileText, Share2, Search, X, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
+import { Bot, Sparkles, FileText, Share2, Search, X, ChevronDown, ChevronRight, CheckCircle, Download } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import toast from 'react-hot-toast';
+
+function downloadCampaignAnalytics() {
+  const now = new Date();
+  const rows = [
+    ['Business Brain – Campaign Analytics Report', '', '', '', ''],
+    [`Generated on: ${now.toLocaleDateString('en-IN')}`, '', '', '', ''],
+    ['', '', '', '', ''],
+    ['CAMPAIGN PERFORMANCE OVERVIEW', '', '', '', ''],
+    ['Metric', 'Current', 'Previous', 'Change', 'Status'],
+    ['Active Campaigns', '84', '72', '+17%', 'Growing'],
+    ['Email Open Rate', '42%', '38%', '+4%', 'Excellent'],
+    ['Social Reach', '8.4 M', '7.1 M', '+18%', 'High'],
+    ['Website Visitors', '2.1 M', '1.9 M', '+11%', 'Active'],
+    ['Leads Generated', '18,500', '15,200', '+22%', 'Processed'],
+    ['Marketing ROI', '386%', '354%', '+9%', 'Excellent'],
+    ['', '', '', '', ''],
+    ['CHANNEL BREAKDOWN', '', '', '', ''],
+    ['Channel', 'Reach', 'CTR', 'Conversions', 'ROI'],
+    ['Instagram', '3.2 M', '4.8%', '12,400', '320%'],
+    ['Email', '850K', '14%', '3,200', '480%'],
+    ['LinkedIn', '1.1 M', '3.2%', '2,800', '290%'],
+    ['Blog/SEO', '2.4 M', '6.1%', '5,900', '410%'],
+    ['Paid Ads', '920K', '2.9%', '1,800', '180%'],
+    ['', '', '', '', ''],
+    ['TOP PERFORMING KEYWORDS (SEO)', '', '', '', ''],
+    ['Keyword', 'Rank', 'Monthly Volume', 'Traffic', 'Change'],
+    ['AI Business Tools', '#3', '22K', '4,200', '+2'],
+    ['CRM Software India', '#7', '18K', '2,800', '+5'],
+    ['Marketing Automation', '#12', '45K', '3,100', '0'],
+    ['Sales Pipeline Tool', '#5', '9K', '1,900', '+3'],
+    ['ERP for SMB', '#18', '6K', '800', '-2'],
+    ['', '', '', '', ''],
+    ['AI INSIGHTS', '', '', '', ''],
+    ['Instagram campaign performing 28% above average engagement', '', '', '', ''],
+    ['Email CTR increased by 14% on Q3 product launch sequence', '', '', '', ''],
+    ['Campaign ROI expected to exceed target by 12% this month', '', '', '', ''],
+  ];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Campaign_Analytics_${now.toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const seoReportData = [
   { keyword: 'AI Business Tools', rank: 3, volume: '22K/mo', trend: '↑', change: '+2' },
@@ -146,13 +194,15 @@ export function AIMarketingAssistant() {
     { text: "Campaign ROI is expected to exceed target by 12% this month.", highlight: "exceed target by 12%" },
   ];
 
-  const handleGenerateAnalytics = () => {
-    const promise = new Promise(r => setTimeout(r, 1500));
+  const handleGenerateAnalytics = async () => {
+    const promise = new Promise(r => setTimeout(r, 1200));
     toast.promise(promise, {
-      loading: 'Generating campaign analytics report...',
-      success: 'Campaign Analytics Report ready! Download will start shortly.',
+      loading: 'Generating Campaign Analytics...',
+      success: 'Campaign Analytics downloaded!',
       error: 'Failed to generate analytics.',
     });
+    await promise;
+    downloadCampaignAnalytics();
   };
 
   return (
@@ -201,7 +251,7 @@ export function AIMarketingAssistant() {
               onClick={handleGenerateAnalytics}
               className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
             >
-              <FileText size={16} /> Generate Campaign Analytics
+              <Download size={16} /> Generate Campaign Analytics
             </button>
           </div>
         </div>
