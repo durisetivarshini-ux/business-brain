@@ -1,15 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { TypeAnimation } from 'react-type-animation';
-import { Bot, ChevronRight } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { Link } from 'react-router-dom';
+import { generateAIResponse } from '../../services/ai';
+import ReactMarkdown from 'react-markdown';
 
 export function AIInsights() {
-  const [showContent, setShowContent] = useState(false);
+  const [content, setContent] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowContent(true), 1500);
-    return () => clearTimeout(timer);
+    let isMounted = true;
+
+    async function fetchInsights() {
+      try {
+        const stream = await generateAIResponse(
+          "Generate a brief, realistic daily operational summary for an enterprise dashboard. Highlight 1 positive metric, 1 warning or alert, and ask a proactive question at the end. Keep it concise (under 80 words)."
+        );
+        
+        setIsLoading(false);
+        let accumulatedText = "";
+        
+        for await (const chunk of stream) {
+          if (!isMounted) break;
+          const chunkText = chunk.text();
+          accumulatedText += chunkText;
+          setContent(accumulatedText);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        setIsLoading(false);
+        if (err.message === 'API_KEY_MISSING') {
+          setError("⚠️ Gemini API Key missing! Please add VITE_GEMINI_API_KEY to your .env file or Vercel Environment Variables to enable live AI synthesis.");
+        } else {
+          setError("⚠️ Error connecting to AI services. Please try again later.");
+          console.error(err);
+        }
+      }
+    }
+
+    fetchInsights();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -27,29 +62,19 @@ export function AIInsights() {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 pr-2">
-        {showContent ? (
-          <TypeAnimation
-            sequence={[
-              "Analyzing the last 24 hours of operational data...\n\n",
-              500,
-              "📊 Revenue increased by 18% following the launch of Campaign Alpha.\n\n",
-              500,
-              "⚠️ Inventory Warning: Product A is depleting 2.4x faster than usual. AI recommends generating a PO for 500 units immediately.\n\n",
-              500,
-              "😊 Customer Satisfaction score improved to 4.8/5. Support resolution time dropped by 14%.\n\n",
-              500,
-              "Would you like me to draft the Purchase Order for Product A?",
-            ]}
-            wrapper="div"
-            speed={70}
-            className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap font-medium"
-            cursor={true}
-          />
-        ) : (
+        {isLoading ? (
           <div className="flex gap-2 items-center text-sm text-[#94A3B8]">
             <span className="animate-bounce">●</span>
             <span className="animate-bounce delay-100">●</span>
             <span className="animate-bounce delay-200">●</span>
+          </div>
+        ) : error ? (
+          <div className="text-sm text-red-400 font-medium bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+            {error}
+          </div>
+        ) : (
+          <div className="text-sm text-white/90 leading-relaxed font-medium prose prose-invert max-w-none">
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         )}
       </div>
