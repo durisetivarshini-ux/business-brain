@@ -44,27 +44,29 @@ export function RevenueChart() {
         </select>
       </div>
 
-      <div className="flex-1 w-full relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#5B5FFF" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#5B5FFF" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#00D4FF" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-            <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val/100}Cr`} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#5B5FFF" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-            <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorExp)" />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div className="flex-1 w-full relative min-h-0">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#5B5FFF" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#5B5FFF" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#00D4FF" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+              <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val/100}Cr`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#5B5FFF" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+              <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorExp)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </GlassCard>
   );
@@ -86,16 +88,18 @@ export function SalesChart() {
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold text-lg text-white">Weekly Sales</h3>
       </div>
-      <div className="flex-1 w-full relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={salesData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} content={<CustomTooltip />} />
-            <Bar dataKey="sales" name="Sales" fill="#00D4FF" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="flex-1 w-full relative min-h-0">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={salesData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} content={<CustomTooltip />} />
+              <Bar dataKey="sales" name="Sales" fill="#00D4FF" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </GlassCard>
   );
@@ -113,26 +117,28 @@ export function CustomerChart() {
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold text-lg text-white">Customer Segments</h3>
       </div>
-      <div className="flex-1 w-full relative flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={customerData}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              paddingAngle={5}
-              dataKey="value"
-              stroke="none"
-            >
-              {customerData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="flex-1 w-full relative flex items-center justify-center min-h-0">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={customerData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+                stroke="none"
+              >
+                {customerData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
         
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
