@@ -12,7 +12,8 @@ export async function* generateAIResponse(prompt, history = [], attachments = []
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'AI service is temporarily unavailable. Please try again shortly.');
+      // Throw the EXACT error returned by the backend
+      throw new Error(errorData.error || `HTTP ${response.status} Error`);
     }
 
     if (!response.body) {
@@ -36,8 +37,8 @@ export async function* generateAIResponse(prompt, history = [], attachments = []
     if (error.name === 'AbortError') {
       throw error;
     }
-    console.error('Frontend AI Service Error:', error);
-    // Throw exactly the professional message requested
-    throw new Error(error.message || 'AI service is temporarily unavailable. Please try again shortly.');
+    console.error('[FRONTEND TRACE] AI Service Error caught:', error);
+    // Throw exactly the real message
+    throw new Error(error.message || 'Unknown Network Error');
   }
 }

@@ -10,25 +10,37 @@ If the user asks for a chart, respond with JSON data in this exact format:
 Never break character. You are the ultimate business intelligence AI.`;
 
 export default async function handler(req, res) {
+  console.log('[BACKEND TRACE] Request received at /api/chat');
+  
   if (req.method !== 'POST') {
+    console.log('[BACKEND TRACE] Invalid method:', req.method);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  console.log('[BACKEND TRACE] GEMINI_API_KEY loaded in environment:', !!apiKey);
   
   if (!apiKey) {
-    return res.status(500).json({ error: 'AI service is temporarily unavailable. Please try again shortly.' });
+    console.error('[BACKEND ERROR] API key is completely missing from environment variables.');
+    return res.status(500).json({ 
+      error: 'Environment variable GEMINI_API_KEY is missing on the server.',
+      code: 'API_KEY_MISSING' 
+    });
   }
 
   try {
     const { prompt, history = [], attachments = [] } = req.body;
+    console.log(`[BACKEND TRACE] Payload received. Prompt length: ${prompt?.length || 0}, History length: ${history?.length || 0}, Attachments: ${attachments?.length || 0}`);
     
     if (!prompt && attachments.length === 0) {
+      console.log('[BACKEND TRACE] Missing prompt and attachments');
       return res.status(400).json({ error: 'Prompt or attachments are required' });
     }
 
+    console.log('[BACKEND TRACE] Initializing GoogleGenerativeAI client...');
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-1.5-pro.');
 
     // Format history for Gemini
     const formattedHistory = [
@@ -43,7 +55,6 @@ export default async function handler(req, res) {
     ];
 
     history.forEach(msg => {
-      // Avoid passing back raw setup or error messages from the frontend
       if (msg.type !== 'setup' && msg.type !== 'error') {
         formattedHistory.push({
           role: msg.role === 'assistant' ? 'model' : 'user',
@@ -52,6 +63,7 @@ export default async function handler(req, res) {
       }
     });
 
+    console.log('[BACKEND TRACE] Starting chat session with formatted history...');
     const chat = model.startChat({ history: formattedHistory });
 
     const parts = [];
@@ -72,7 +84,9 @@ export default async function handler(req, res) {
       });
     }
 
+    console.log('[BACKEND TRACE] Sending message stream to Gemini...');
     const result = await chat.sendMessageStream(parts);
+    console.log('[BACKEND TRACE] Stream established successfully. Sending response to client.');
     
     // Set headers for Server-Sent Events / Chunked transfer
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -85,9 +99,17 @@ export default async function handler(req, res) {
       res.write(chunkText);
     }
     
+    console.log('[BACKEND TRACE] Stream completed successfully.');
     res.end();
   } catch (error) {
-    console.error('Backend Gemini Error:', error);
-    res.status(500).json({ error: 'AI service is temporarily unavailable. Please try again shortly.' });
+    console.error('[BACKEND ERROR] Full Gemini Error Stack Trace:');
+    console.error(error.stack || error);
+    
+    // Return the EXACT error message to the frontend, no masking
+    res.status(500).json({ 
+      error: error.message || 'Unknown Gemini API Error',
+      name: error.name || 'Error',
+      status: error.status || 500
+    });
   }
 }
