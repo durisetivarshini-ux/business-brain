@@ -112,7 +112,30 @@ function SavedPromptsPanel({ onUsePrompt, onClose }) {
 }
 
 // ── History Panel ─────────────────────────────────────────────────────
-function HistoryPanel({ history, onLoadSession, onDeleteSession, onClose }) {
+function HistoryPanel({ history, onLoadSession, onDeleteSession, onPinSession, onRenameSession, onClose }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  const filteredHistory = history.filter(s => 
+    s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    s.preview.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const sortedHistory = [...filteredHistory].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return 0; // maintain chronological order for the rest
+  });
+
+  const handleRenameSubmit = (e, id) => {
+    e.preventDefault();
+    if (editTitle.trim()) {
+      onRenameSession(id, editTitle.trim());
+    }
+    setEditingId(null);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -126,39 +149,65 @@ function HistoryPanel({ history, onLoadSession, onDeleteSession, onClose }) {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-        className="w-full max-w-lg bg-[#0B1120] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden max-h-[80vh] flex flex-col"
+        className="w-full max-w-lg bg-[#0B1120] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden max-h-[85vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#00D4FF]/10 to-[#5B5FFF]/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-[#5B5FFF] flex items-center justify-center">
-              <Clock size={18} className="text-white" />
+        <div className="px-6 py-5 border-b border-white/5 flex flex-col gap-4 bg-gradient-to-r from-[#00D4FF]/10 to-[#5B5FFF]/10 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-[#5B5FFF] flex items-center justify-center">
+                <Clock size={18} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Chat History</h2>
+                <p className="text-xs text-[#94A3B8]">{history.length} saved conversation{history.length !== 1 ? 's' : ''}</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base font-bold text-white">Chat History</h2>
-              <p className="text-xs text-[#94A3B8]">{history.length} saved conversation{history.length !== 1 ? 's' : ''}</p>
-            </div>
+            <button onClick={onClose} className="p-2 rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors">
+              <X size={18} />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors">
-            <X size={18} />
-          </button>
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Search conversations..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-lg py-2 pl-3 pr-4 text-sm text-white placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B5FFF]"
+            />
+          </div>
         </div>
 
         {/* History List */}
         <div className="overflow-y-auto custom-scrollbar p-4 space-y-2 flex-1">
-          {history.length === 0 ? (
+          {sortedHistory.length === 0 ? (
             <div className="text-center py-16">
               <Clock size={32} className="text-[#94A3B8]/50 mx-auto mb-3" />
-              <p className="text-sm font-bold text-[#94A3B8]">No chat history yet</p>
-              <p className="text-xs text-[#94A3B8]/60 mt-1">Previous conversations will appear here</p>
+              <p className="text-sm font-bold text-[#94A3B8]">No chats found</p>
             </div>
           ) : (
-            history.map((session) => (
-              <div key={session.id} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/15 transition-all group">
+            sortedHistory.map((session) => (
+              <div key={session.id} className={`p-4 rounded-xl bg-white/5 border ${session.pinned ? 'border-[#F59E0B]/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'border-white/5'} hover:border-white/15 transition-all group`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{session.title}</p>
+                    {editingId === session.id ? (
+                      <form onSubmit={(e) => handleRenameSubmit(e, session.id)} className="flex items-center gap-2 mb-1">
+                        <input 
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          autoFocus
+                          className="bg-black/40 text-white text-sm font-bold px-2 py-1 rounded border border-[#5B5FFF] focus:outline-none w-full"
+                        />
+                        <button type="submit" className="text-[#10B981]"><Check size={14} /></button>
+                      </form>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {session.pinned && <Star size={12} className="text-[#F59E0B] fill-[#F59E0B]" />}
+                        <p className="text-sm font-bold text-white truncate">{session.title}</p>
+                      </div>
+                    )}
                     <p className="text-xs text-[#94A3B8] mt-0.5">{session.date} · {session.messageCount} messages</p>
                     <p className="text-xs text-[#94A3B8]/70 mt-1 line-clamp-1 italic">"{session.preview}"</p>
                   </div>
@@ -169,6 +218,20 @@ function HistoryPanel({ history, onLoadSession, onDeleteSession, onClose }) {
                       title="Restore session"
                     >
                       <Copy size={13} />
+                    </button>
+                    <button
+                      onClick={() => onPinSession(session.id)}
+                      className={`p-1.5 rounded-lg ${session.pinned ? 'bg-[#F59E0B]/20 text-[#F59E0B] hover:bg-[#F59E0B]/30' : 'bg-white/5 text-[#94A3B8] hover:bg-white/10 hover:text-white'} transition-colors`}
+                      title={session.pinned ? "Unpin" : "Pin"}
+                    >
+                      <Star size={13} className={session.pinned ? 'fill-[#F59E0B]' : ''} />
+                    </button>
+                    <button
+                      onClick={() => { setEditingId(session.id); setEditTitle(session.title); }}
+                      className="p-1.5 rounded-lg bg-white/5 text-[#94A3B8] hover:bg-white/10 hover:text-white transition-colors"
+                      title="Rename"
+                    >
+                      <FileText size={13} />
                     </button>
                     <button
                       onClick={() => onDeleteSession(session.id)}
@@ -197,8 +260,58 @@ export function CopilotPage() {
   const [chatKey, setChatKey] = useState(0);
   const [showSavedPrompts, setShowSavedPrompts] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]); // list of {id, title, date, messageCount, preview, messages}
+  
+  // Advanced Chat State
+  const [chatHistory, setChatHistory] = useState(() => {
+    const saved = localStorage.getItem('ai_chat_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [currentChatId, setCurrentChatId] = useState(null);
+  const abortControllerRef = useRef(null);
   const scrollRef = useRef(null);
+
+  // Initialize a new chat on mount if needed
+  useEffect(() => {
+    if (!currentChatId && messages.length === 0) {
+      setCurrentChatId(Date.now().toString());
+    }
+  }, []);
+
+  // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+  }, [chatHistory]);
+
+  // Auto-save active chat to history
+  useEffect(() => {
+    if (messages.length > 0 && currentChatId) {
+      setChatHistory(prev => {
+        const existingIdx = prev.findIndex(s => s.id === currentChatId);
+        const firstUserMsg = messages.find(m => m.role === 'user')?.content || 'Untitled';
+        const title = prev[existingIdx]?.title && prev[existingIdx].title !== 'Untitled' 
+          ? prev[existingIdx].title 
+          : (firstUserMsg.length > 45 ? firstUserMsg.slice(0, 45) + '…' : firstUserMsg);
+          
+        const session = {
+          id: currentChatId,
+          title,
+          date: prev[existingIdx]?.date || new Date().toLocaleString(),
+          messageCount: messages.length,
+          preview: messages[messages.length - 1]?.content?.slice(0, 80) || '',
+          messages: messages,
+          pinned: prev[existingIdx]?.pinned || false
+        };
+        
+        if (existingIdx >= 0) {
+          const newHistory = [...prev];
+          newHistory[existingIdx] = session;
+          return newHistory;
+        } else {
+          return [session, ...prev];
+        }
+      });
+    }
+  }, [messages, currentChatId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -206,30 +319,26 @@ export function CopilotPage() {
     }
   }, [messages, isTyping]);
 
-  const saveCurrentToHistory = (msgs) => {
-    if (msgs.length < 2) return; // only save real conversations
-    const firstUserMsg = msgs.find(m => m.role === 'user')?.content || 'Untitled';
-    const title = firstUserMsg.length > 45 ? firstUserMsg.slice(0, 45) + '…' : firstUserMsg;
-    const session = {
-      id: Date.now().toString(),
-      title,
-      date: new Date().toLocaleString(),
-      messageCount: msgs.length,
-      preview: msgs[msgs.length - 1]?.content?.slice(0, 80) || '',
-      messages: msgs,
-    };
-    setChatHistory(prev => [session, ...prev.slice(0, 19)]); // keep max 20
+  const handleStopGenerating = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsTyping(false);
+    }
   };
 
   const handleNewChat = () => {
-    saveCurrentToHistory(messages);
+    handleStopGenerating();
     setMessages([]);
     setInputValue('');
+    setCurrentChatId(Date.now().toString());
     setChatKey(k => k + 1);
     toast.success('New chat started!', { icon: '✨' });
   };
 
   const handleLoadSession = (session) => {
+    handleStopGenerating();
+    setCurrentChatId(session.id);
     setMessages(session.messages);
     setChatKey(k => k + 1);
     toast.success(`Restored: "${session.title.slice(0, 30)}"`, { icon: '🔁' });
@@ -240,27 +349,47 @@ export function CopilotPage() {
     toast.success('Session deleted');
   };
 
+  const handlePinSession = (id) => {
+    setChatHistory(prev => prev.map(s => s.id === id ? { ...s, pinned: !s.pinned } : s));
+  };
+
+  const handleRenameSession = (id, newTitle) => {
+    setChatHistory(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s));
+    toast.success('Chat renamed');
+  };
+
   const handleSidebarItemClick = (itemName) => {
     const prompt = SIDEBAR_PROMPTS[itemName] || `Tell me about ${itemName}`;
     handleSend(prompt);
   };
 
-  const handleSend = async (text) => {
-    const msg = text || inputValue;
-    if (!msg.trim() || isTyping) return;
-    setInputValue('');
+  const [attachments, setAttachments] = useState([]);
 
-    const newMessages = [...messages, { role: 'user', content: msg, type: 'text' }];
+  const handleSend = async (text, providedAttachments = null) => {
+    const msg = text || inputValue;
+    const currentAttachments = providedAttachments || attachments;
+    if (!msg.trim() && currentAttachments.length === 0) return;
+    if (isTyping) return;
+    
+    setInputValue('');
+    setAttachments([]);
+
+    const newMessages = [...messages, { 
+      role: 'user', 
+      content: msg, 
+      type: 'text',
+      attachments: currentAttachments 
+    }];
     setMessages(newMessages);
     setIsTyping(true);
 
     try {
-      // Create a temporary message for the AI's response that we will stream into
       const aiMessageId = Date.now();
       setMessages(prev => [...prev, { id: aiMessageId, role: 'assistant', type: 'markdown', content: '' }]);
       
+      abortControllerRef.current = new AbortController();
       const { generateAIResponse } = await import('../../services/ai');
-      const stream = await generateAIResponse(msg, messages);
+      const stream = await generateAIResponse(msg, messages, currentAttachments, abortControllerRef.current.signal);
 
       let fullContent = '';
       for await (const chunk of stream) {
@@ -270,7 +399,10 @@ export function CopilotPage() {
         ));
       }
       setIsTyping(false);
+      abortControllerRef.current = null;
     } catch (error) {
+      if (error.name === 'AbortError') return; // User stopped it
+      
       console.error('Gemini API Error:', error);
       let errorMsg = `**Error communicating with AI:** \`${error.message}\``;
       
@@ -294,7 +426,18 @@ export function CopilotPage() {
         });
       }
       setIsTyping(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleRegenerate = async (msgId) => {
+    const msgIndex = messages.findIndex(m => m.id === msgId);
+    if (msgIndex <= 0) return;
+    const prevUserMsg = messages[msgIndex - 1];
+    
+    // Remove the current AI message and re-send the previous user message
+    setMessages(prev => prev.slice(0, msgIndex - 1));
+    handleSend(prevUserMsg.content, prevUserMsg.attachments);
   };
 
   const handleKeyDown = (e) => {
@@ -428,7 +571,13 @@ export function CopilotPage() {
                 <div className="space-y-8 w-full max-w-4xl mx-auto px-6 pt-6">
                   <AnimatePresence initial={false}>
                     {messages.map((msg, i) => (
-                      <MessageBubble key={i} msg={msg} isLast={i === messages.length - 1} isTyping={isTyping} />
+                      <MessageBubble 
+                        key={msg.id || i} 
+                        msg={msg} 
+                        isLast={i === messages.length - 1} 
+                        isTyping={isTyping}
+                        onRegenerate={() => handleRegenerate(msg.id)} 
+                      />
                     ))}
                   </AnimatePresence>
                   {isTyping && <TypingAnimation />}
@@ -440,6 +589,35 @@ export function CopilotPage() {
             <div className="p-4 pt-0 z-10 shrink-0 w-full max-w-4xl mx-auto">
               <div className="bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)] focus-within:border-[#5B5FFF]/50 focus-within:ring-1 focus-within:ring-[#5B5FFF]/30 transition-all flex flex-col relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#5B5FFF]/0 via-[#00D4FF]/10 to-[#7C3AED]/0 opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                {/* Attachment Previews */}
+                {attachments.length > 0 && (
+                  <div className="flex gap-2 px-3 pt-2 pb-1 overflow-x-auto custom-scrollbar relative z-10">
+                    {attachments.map((file, idx) => (
+                      <div key={idx} className="relative group shrink-0">
+                        {file.type.startsWith('image/') ? (
+                          <img 
+                            src={`data:${file.type};base64,${file.inlineData.data}`} 
+                            alt={file.name} 
+                            className="w-12 h-12 object-cover rounded-lg border border-white/20"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg border border-white/20 bg-[#1e293b] flex items-center justify-center flex-col">
+                            <FileText size={16} className="text-[#00D4FF]" />
+                            <span className="text-[8px] mt-1 text-[#94A3B8] truncate w-10 text-center">{file.name.split('.').pop().toUpperCase()}</span>
+                          </div>
+                        )}
+                        <button 
+                          onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <textarea
                   rows="2"
                   value={inputValue}
@@ -450,8 +628,7 @@ export function CopilotPage() {
                 />
                 <div className="flex items-center justify-between px-2 pb-1 relative z-10">
                   <div className="flex items-center gap-2">
-                    <FileUpload />
-                    {/* VoiceInput wired to paste transcript into textarea */}
+                    <FileUpload onFileSelected={(file) => setAttachments(prev => [...prev, file])} />
                     <VoiceInput onTranscript={(t) => setInputValue(prev => prev ? prev + ' ' + t : t)} />
                     <button
                       className="functional-btn hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5B5FFF]/10 text-[#5B5FFF] hover:bg-[#5B5FFF]/20 border border-[#5B5FFF]/20 transition-colors text-xs font-bold"
@@ -462,13 +639,24 @@ export function CopilotPage() {
                       <Sparkles size={12} /> Deep Analysis
                     </button>
                   </div>
-                  <button
-                    onClick={() => handleSend()}
-                    disabled={!inputValue.trim() || isTyping}
-                    className={`functional-btn p-2 rounded-xl flex items-center justify-center transition-all ${!inputValue.trim() || isTyping ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-gradient-to-r from-[#5B5FFF] to-[#7C3AED] text-white shadow-[0_0_15px_rgba(91,95,255,0.4)] hover:scale-105'}`}
-                  >
-                    <Send size={18} />
-                  </button>
+                  
+                  {isTyping ? (
+                    <button
+                      onClick={handleStopGenerating}
+                      className="functional-btn p-2 rounded-xl flex items-center justify-center transition-all bg-rose-500/20 text-rose-400 hover:bg-rose-500/40 border border-rose-500/30"
+                      title="Stop generating"
+                    >
+                      <div className="w-3 h-3 bg-rose-400 rounded-sm" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleSend()}
+                      disabled={(!inputValue.trim() && attachments.length === 0)}
+                      className={`functional-btn p-2 rounded-xl flex items-center justify-center transition-all ${(!inputValue.trim() && attachments.length === 0) ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-gradient-to-r from-[#5B5FFF] to-[#7C3AED] text-white shadow-[0_0_15px_rgba(91,95,255,0.4)] hover:scale-105'}`}
+                    >
+                      <Send size={18} />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="text-center mt-2 text-[10px] text-[#94A3B8] font-medium tracking-wide">
@@ -497,6 +685,8 @@ export function CopilotPage() {
             history={chatHistory}
             onLoadSession={handleLoadSession}
             onDeleteSession={handleDeleteSession}
+            onPinSession={handlePinSession}
+            onRenameSession={handleRenameSession}
             onClose={() => setShowHistory(false)}
           />
         )}

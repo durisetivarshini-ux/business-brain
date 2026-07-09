@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, Copy, Check } from 'lucide-react';
+import { Bot, User, Copy, Check, RefreshCw, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AICharts } from './AICharts';
 
-export function MessageBubble({ msg, isLast, isTyping }) {
+export function MessageBubble({ msg, isLast, isTyping, onRegenerate }) {
   const isUser = msg.role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -29,6 +29,28 @@ export function MessageBubble({ msg, isLast, isTyping }) {
       {/* Bubble Container */}
       <div className={`max-w-[85%] rounded-3xl p-5 relative ${isUser ? 'bg-gradient-to-br from-[#5B5FFF]/20 to-[#00D4FF]/10 border border-[#5B5FFF]/30 text-white rounded-tr-sm shadow-[0_5px_30px_rgba(0,212,255,0.1)]' : 'bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 text-[#F8FAFC] rounded-tl-sm shadow-[0_5px_30px_rgba(0,0,0,0.3)]'}`}>
         
+        {/* User Attachments */}
+        {isUser && msg.attachments && msg.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {msg.attachments.map((file, idx) => (
+              <div key={idx} className="shrink-0">
+                {file.type.startsWith('image/') ? (
+                  <img 
+                    src={`data:${file.type};base64,${file.inlineData.data}`} 
+                    alt={file.name} 
+                    className="max-w-[200px] max-h-[200px] object-cover rounded-lg border border-[#00D4FF]/30"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2 border border-[#00D4FF]/30">
+                    <FileText size={16} className="text-[#00D4FF]" />
+                    <span className="text-sm truncate max-w-[150px]">{file.name}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Dynamic Content Rendering */}
         {msg.type === 'setup' ? (
           <div className="space-y-4">
@@ -72,7 +94,7 @@ export function MessageBubble({ msg, isLast, isTyping }) {
 
         {/* Action Buttons (Hover) */}
         {!isUser && !isTyping && msg.content && (
-          <div className="absolute -bottom-3 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute -bottom-3 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
             <button 
               onClick={handleCopy}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0f172a] border border-white/10 text-[#94A3B8] hover:text-white hover:bg-[#1e293b] text-xs font-bold transition-colors shadow-lg"
@@ -80,6 +102,14 @@ export function MessageBubble({ msg, isLast, isTyping }) {
               {copied ? <Check size={12} className="text-[#10B981]" /> : <Copy size={12} />}
               {copied ? 'Copied!' : 'Copy'}
             </button>
+            {isLast && onRegenerate && (
+              <button 
+                onClick={onRegenerate}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0f172a] border border-white/10 text-[#94A3B8] hover:text-white hover:bg-[#1e293b] text-xs font-bold transition-colors shadow-lg"
+              >
+                <RefreshCw size={12} /> Regenerate
+              </button>
+            )}
           </div>
         )}
 

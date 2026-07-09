@@ -18,20 +18,28 @@ Always format your responses cleanly using Markdown. Use tables, bolding, code b
 Be concise but thorough.
 `;
 
-export async function generateAIResponse(prompt, history = []) {
+export async function generateAIResponse(prompt, history = [], attachments = [], abortSignal = null) {
   const genAI = getGenAI();
   if (!genAI) {
     throw new Error('API_KEY_MISSING');
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     
     // Format history for Gemini
-    const formattedHistory = history.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    }));
+    const formattedHistory = history.map(msg => {
+      const parts = [{ text: msg.content }];
+      if (msg.attachments && msg.attachments.length > 0) {
+        msg.attachments.forEach(att => {
+          if (att.inlineData) parts.push({ inlineData: att.inlineData });
+        });
+      }
+      return {
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: parts
+      };
+    });
 
     // Start chat
     const chat = model.startChat({
@@ -47,14 +55,26 @@ export async function generateAIResponse(prompt, history = []) {
         ...formattedHistory
       ],
       generationConfig: {
-        maxOutputTokens: 2000,
+        maxOutputTokens: 8000,
       },
     });
 
+    // Prepare current prompt parts (text + attachments)
+    const promptParts = [{ text: prompt }];
+    if (attachments && attachments.length > 0) {
+      attachments.forEach(att => {
+        if (att.inlineData) promptParts.push({ inlineData: att.inlineData });
+      });
+    }
+
     // We'll use streaming for a premium feel
-    const result = await chat.sendMessageStream(prompt);
+    const result = await chat.sendMessageStream(promptParts, { signal: abortSignal });
     return result; // We return the stream so the component can consume it
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('Stream aborted by user');
+      throw error;
+    }
     console.error("AI Generation Error:", error);
     throw error;
   }
