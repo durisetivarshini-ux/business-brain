@@ -1,10 +1,80 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, MoreHorizontal, X, Search, Clock, Tag } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, X, Search, Clock, Tag, Send, CheckCircle, UserPlus, AlertCircle, CheckSquare } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import toast from 'react-hot-toast';
 
-function QueueModal({ tickets, onClose }) {
+function ChatModal({ ticket, onClose }) {
+  const [msg, setMsg] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!msg) return;
+    setSent(true);
+    toast.success(`Message sent to ${ticket.customer}`);
+    setTimeout(onClose, 1500);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white"><X size={20} /></button>
+        {sent ? (
+          <div className="flex flex-col items-center py-6">
+            <CheckCircle size={40} className="text-[#10B981] mb-3" />
+            <p className="text-white font-bold">Message Sent!</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSend} className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: `${ticket.color}20`, color: ticket.color }}>
+                <MessageCircle size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">Chat with {ticket.customer}</p>
+                <p className="text-xs text-[#94A3B8]">{ticket.id} · {ticket.issue}</p>
+              </div>
+            </div>
+            <textarea autoFocus rows={3} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[#5B5FFF]/50 resize-none" placeholder="Type your reply..." value={msg} onChange={e => setMsg(e.target.value)} />
+            <button type="submit" className="py-2.5 rounded-xl bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF] text-white text-sm font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
+              <Send size={14} /> Send Reply
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OptionsMenu({ ticket, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="w-full max-w-xs rounded-xl border border-white/10 bg-[#0B1120] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+          <div>
+            <p className="text-xs font-bold text-white">Manage Ticket</p>
+            <p className="text-[10px] text-[#94A3B8]">{ticket.id}</p>
+          </div>
+          <button onClick={onClose} className="text-[#94A3B8] hover:text-white"><X size={16} /></button>
+        </div>
+        <div className="flex flex-col p-2">
+          <button onClick={() => { toast.success('Ticket assigned to you.'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left">
+            <UserPlus size={16} /> Assign to me
+          </button>
+          <button onClick={() => { toast.success('Ticket escalated.'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#F59E0B] hover:text-white hover:bg-[#F59E0B]/10 rounded-lg transition-colors text-left">
+            <AlertCircle size={16} /> Escalate Ticket
+          </button>
+          <button onClick={() => { toast.success('Ticket resolved and closed.'); onClose(); }} className="flex items-center gap-3 w-full p-3 text-sm text-[#10B981] hover:text-white hover:bg-[#10B981]/10 rounded-lg transition-colors text-left">
+            <CheckSquare size={16} /> Mark as Resolved
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QueueModal({ tickets, onClose, onOpenChat, onOpenOptions }) {
   const [search, setSearch] = useState('');
   const filtered = tickets.filter(t => t.customer.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase()) || t.issue.toLowerCase().includes(search.toLowerCase()));
 
@@ -48,8 +118,8 @@ function QueueModal({ tickets, onClose }) {
                   <span className="flex items-center gap-1 font-bold" style={{ color: ticket.color }}><Tag size={12} /> {ticket.priority}</span>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => toast.success(`Chat opened with ${ticket.customer}`)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MessageCircle size={14} /></button>
-                  <button onClick={() => toast.success(`Options menu for ${ticket.id}`)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MoreHorizontal size={14} /></button>
+                  <button onClick={() => onOpenChat(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MessageCircle size={14} /></button>
+                  <button onClick={() => onOpenOptions(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors"><MoreHorizontal size={14} /></button>
                 </div>
               </div>
             </div>
@@ -65,6 +135,8 @@ function QueueModal({ tickets, onClose }) {
 
 export function TicketBoard() {
   const [showQueue, setShowQueue] = useState(false);
+  const [activeChat, setActiveChat] = useState(null);
+  const [activeOptions, setActiveOptions] = useState(null);
 
   const tickets = [
     { id: "T-8492", customer: "Acme Corp", issue: "API Integration Error", priority: "Critical", status: "Open", time: "10m ago", color: "#EC4899" },
@@ -120,10 +192,10 @@ export function TicketBoard() {
                   <span className="text-[10px] text-[#94A3B8]">{ticket.time}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => toast.success(`Chat opened with ${ticket.customer}`)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
+                  <button onClick={() => setActiveChat(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
                     <MessageCircle size={14} />
                   </button>
-                  <button onClick={() => toast.success(`Options menu for ${ticket.id}`)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
+                  <button onClick={() => setActiveOptions(ticket)} className="p-2 rounded-md bg-white/5 text-[#94A3B8] hover:text-white hover:bg-[#5B5FFF]/20 transition-colors">
                     <MoreHorizontal size={14} />
                   </button>
                 </div>
@@ -134,7 +206,9 @@ export function TicketBoard() {
       </GlassCard>
 
       <AnimatePresence>
-        {showQueue && <QueueModal tickets={tickets} onClose={() => setShowQueue(false)} />}
+        {showQueue && <QueueModal tickets={tickets} onClose={() => setShowQueue(false)} onOpenChat={setActiveChat} onOpenOptions={setActiveOptions} />}
+        {activeChat && <ChatModal ticket={activeChat} onClose={() => setActiveChat(null)} />}
+        {activeOptions && <OptionsMenu ticket={activeOptions} onClose={() => setActiveOptions(null)} />}
       </AnimatePresence>
     </>
   );
