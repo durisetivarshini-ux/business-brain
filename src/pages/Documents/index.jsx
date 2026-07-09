@@ -1,8 +1,13 @@
 import React from 'react';
 import { DocumentDashboard } from './DocumentDashboard';
 import { ContractAnalyzer } from './ContractAnalyzer';
+import { Scan, UploadCloud } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function DocumentsPage() {
+  const handleScan = () => toast.success('Initializing OCR Scanner...');
+  const handleUpload = () => toast.success('Upload dialog opened.');
+
   return (
     <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10 pb-10">
       
@@ -13,11 +18,11 @@ export function DocumentsPage() {
           <p className="text-[#94A3B8] font-medium">Enterprise file management, e-signatures, and AI vault.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
-            Scan OCR
+          <button onClick={handleScan} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">
+            <Scan size={16} /> Scan OCR
           </button>
-          <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#5B5FFF] text-white text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-transform hover:scale-[1.02]">
-            + Upload File
+          <button onClick={handleUpload} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#5B5FFF] text-white text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-transform hover:scale-[1.02]">
+            <UploadCloud size={16} /> Upload File
           </button>
         </div>
       </div>
