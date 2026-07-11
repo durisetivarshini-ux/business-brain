@@ -46,8 +46,8 @@ app.post('/api/chat', async (req, res) => {
 
     console.log('[BACKEND TRACE] Initializing GoogleGenerativeAI client...');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-1.5-pro.');
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-1.5-flash.');
 
     // Format history for Gemini
     const formattedHistory = [
