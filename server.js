@@ -24,7 +24,7 @@ Never break character. You are the ultimate business intelligence AI.`;
 app.post('/api/chat', async (req, res) => {
   console.log('[BACKEND TRACE] Request received at local /api/chat');
   
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   console.log('[BACKEND TRACE] GEMINI_API_KEY loaded in environment:', !!apiKey);
   
   if (!apiKey) {
@@ -39,27 +39,15 @@ app.post('/api/chat', async (req, res) => {
     const { prompt, history = [], attachments = [] } = req.body;
     console.log(`[BACKEND TRACE] Payload received. Prompt length: ${prompt?.length || 0}, History length: ${history?.length || 0}, Attachments: ${attachments?.length || 0}`);
     
-    if (!prompt && attachments.length === 0) {
-      console.log('[BACKEND TRACE] Missing prompt and attachments');
-      return res.status(400).json({ error: 'Prompt or attachments are required' });
-    }
-
-    console.log('[BACKEND TRACE] Initializing GoogleGenerativeAI client...');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-1.5-flash.');
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-flash-lite-latest",
+      systemInstruction: SYSTEM_PROMPT
+    });
+    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-flash-lite-latest.');
 
     // Format history for Gemini
-    const formattedHistory = [
-      {
-        role: 'user',
-        parts: [{ text: SYSTEM_PROMPT }]
-      },
-      {
-        role: 'model',
-        parts: [{ text: 'System initialized. I am Business Brain. How may I assist you today?' }]
-      }
-    ];
+    const formattedHistory = [];
 
     history.forEach(msg => {
       if (msg.type !== 'setup' && msg.type !== 'error') {
@@ -82,12 +70,16 @@ app.post('/api/chat', async (req, res) => {
 
     if (attachments && attachments.length > 0) {
       attachments.forEach(file => {
-        parts.push({
-          inlineData: {
-            data: file.inlineData.data,
-            mimeType: file.type
-          }
-        });
+        if (file.inlineData) {
+          parts.push({
+            inlineData: {
+              data: file.inlineData.data,
+              mimeType: file.type
+            }
+          });
+        } else if (file.textData) {
+          parts.push({ text: file.textData });
+        }
       });
     }
 

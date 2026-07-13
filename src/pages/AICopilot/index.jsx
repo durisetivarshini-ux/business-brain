@@ -404,7 +404,7 @@ export function CopilotPage() {
       if (error.name === 'AbortError') return; // User stopped it
       
       console.error('Gemini API Error:', error);
-      let errorMsg = `**Error communicating with AI:** \`${error.message}\``;
+      let errorMsg = `**Error communicating with AI:**\n\nWe encountered an issue processing your request:\n\`\`\`\n${error.message}\n\`\`\``;
       
       setMessages(prev => {
         const withoutLast = prev.slice(0, -1);
