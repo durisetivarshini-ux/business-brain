@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { FunctionalButton } from '../ui/FunctionalButton';
-import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 
 export function DashboardHero() {
-  const { user } = useAppStore();
-  const displayName = user?.name || 'there';
+  const { user } = useAuth();
+  const displayName = user?.displayName || 'there';
   const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
   return (
     <div className="flex flex-col md:flex-row gap-6 mb-8 relative z-10">

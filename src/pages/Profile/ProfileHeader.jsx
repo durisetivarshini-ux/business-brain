@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Mail, Phone, Edit2, Download, Share2, CheckCircle2, X, Copy, Check, QrCode, Building2, Globe } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 import { ProfileEditModal } from './ProfileEditModal';
 import { toast } from 'react-hot-toast';
 
@@ -167,7 +167,7 @@ function ShareModal({ isOpen, onClose, user }) {
 }
 
 export function ProfileHeader() {
-  const { user, updateUser } = useAppStore();
+  const { user, updateUserProfile } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isIDCardOpen, setIsIDCardOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -183,7 +183,7 @@ export function ProfileHeader() {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const imageUrl = URL.createObjectURL(file);
-      updateUser({ coverUrl: imageUrl });
+      updateUserProfile({ coverUrl: imageUrl });
       toast.success('Cover image updated successfully!');
     }
   };
@@ -217,6 +217,7 @@ export function ProfileHeader() {
             onClick={handleEditCoverClick}
             className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold transition-colors flex items-center gap-2"
           >
+            Member since {new Date(user?.metadata?.creationTime).toLocaleDateString()}
             <Edit2 size={14} /> Edit Cover
           </button>
         </div>
@@ -244,8 +245,11 @@ export function ProfileHeader() {
           {/* Identity Info */}
           <div className="text-center md:text-left flex-1 mb-2">
             <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
-              <h1 className="text-3xl font-display font-bold text-white tracking-tight">{user.name}</h1>
-              <CheckCircle2 className="text-[#00D4FF]" size={20} />
+              <h1 className="text-3xl font-display font-bold text-white mb-2">{user?.displayName || 'User'}</h1>
+              <p className="text-gray-400 text-sm flex items-center gap-2">
+                <Mail size={14} className="text-[#5B5FFF]" />
+                {user?.email}
+              </p>
             </div>
             <p className="text-[#00D4FF] font-bold text-lg mb-3">{user.role}</p>
             

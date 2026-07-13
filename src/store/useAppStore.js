@@ -4,12 +4,6 @@ import { persist } from 'zustand/middleware';
 export const useAppStore = create(
   persist(
     (set) => ({
-      // User Profile — null until logged in
-      user: null,
-      setUser: (user) => set({ user }),
-      updateUser: (data) => set((state) => ({ user: { ...state.user, ...data } })),
-      clearUser: () => set({ user: null }),
-
       // Application Data
       crmLeads: [
         { id: '1', name: 'Acme Corp', status: 'Negotiation', value: '$45,000', lastContact: '2 hours ago' },

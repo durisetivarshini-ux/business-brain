@@ -2,8 +2,43 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const USERS_FILE = path.join(__dirname, 'users.json');
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123';
+
+async function getUsers() {
+  try {
+    const data = await fs.readFile(USERS_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      const defaultUser = {
+        id: "1",
+        name: "Admin User",
+        email: "admin@businessbrain.ai",
+        password: await bcrypt.hash("password123", 10),
+        role: "Administrator",
+        avatarUrl: "https://api.dicebear.com/7.x/initials/svg?seed=Admin"
+      };
+      await fs.writeFile(USERS_FILE, JSON.stringify([defaultUser], null, 2));
+      return [defaultUser];
+    }
+    return [];
+  }
+}
+
+async function saveUsers(users) {
+  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,6 +55,47 @@ If the user asks for a chart, respond with JSON data in this exact format:
 { "chartType": "bar", "data": [ { "name": "Q1", "value": 400 }, ... ] }
 \`\`\`
 Never break character. You are the ultimate business intelligence AI.`;
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  
+  const users = await getUsers();
+  const user = users.find(u => u.email === email);
+  if (!user || !user.password) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl } });
+});
+
+app.post('/api/auth/google', async (req, res) => {
+  const { email, name, picture, sub } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  
+  const users = await getUsers();
+  let user = users.find(u => u.email === email);
+  
+  if (!user) {
+    user = {
+      id: Date.now().toString(),
+      email,
+      name,
+      role: 'Google Account',
+      avatarUrl: picture,
+      googleId: sub
+    };
+    users.push(user);
+    await saveUsers(users);
+  }
+  
+  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl } });
+});
 
 app.post('/api/chat', async (req, res) => {
   console.log('[BACKEND TRACE] Request received at local /api/chat');

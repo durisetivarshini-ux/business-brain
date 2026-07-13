@@ -1,16 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 import { FunctionalButton } from '../../components/ui/FunctionalButton';
 import { toast } from 'react-hot-toast';
 
 export function ProfileEditModal({ isOpen, onClose }) {
-  const { user, updateUser } = useAppStore();
+  const { user, updateUserProfile } = useAuth();
   const [formData, setFormData] = useState({ 
     ...user,
+    name: user?.displayName || '',
+    email: user?.email || '',
     linkedin: user?.linkedin || '',
-    phone: user?.phone || ''
+    phone: user?.phone || '',
+    location: user?.location || '',
+    role: user?.role || ''
   });
   const fileInputRef = useRef(null);
 
@@ -20,10 +24,14 @@ export function ProfileEditModal({ isOpen, onClose }) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    updateUser(formData);
-    toast.success('Profile updated successfully!');
-    onClose();
+  const handleSave = async () => {
+    try {
+      await updateUserProfile(formData);
+      toast.success('Profile updated successfully!');
+      onClose();
+    } catch(err) {
+      toast.error('Failed to update profile');
+    }
   };
 
   const handleImageUploadClick = () => {

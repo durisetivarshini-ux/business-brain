@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, Sun, Moon, Layout, ChevronDown, Home, LogOut, CheckCircle2, MessageCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 
 
 export function Topbar() {
-  const { user } = useAppStore();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -205,7 +205,7 @@ export function Topbar() {
                   </button>
                   <div className="border-t border-white/5 mt-2 pt-2">
                     <button
-                      onClick={() => { navigate('/login'); setShowDropdown(false); }}
+                      onClick={() => { logout(); navigate('/login'); setShowDropdown(false); }}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors w-full text-left"
                     >
                       <div className="w-7 h-7 rounded-lg bg-[#EF4444]/10 flex items-center justify-center">

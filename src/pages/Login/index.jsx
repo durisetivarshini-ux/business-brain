@@ -1,108 +1,78 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Bot, Activity, Command, X, ShieldAlert, Sparkles, UserPlus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, Bot, Activity, ArrowRight } from 'lucide-react';
 import { Logo } from '../../components/common/Logo';
 import { InitializationScreen } from '../../components/common/InitializationScreen';
-import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-hot-toast';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { setUser } = useAppStore();
+  const { login, googleLogin, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showInit, setShowInit] = useState(false);
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [ssoType, setSsoType] = useState(null); // 'google' | 'microsoft' | null
-  
-  // Custom SSO Form States
-  const [ssoEmail, setSsoEmail] = useState('');
-  const [ssoName, setSsoName] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  const deriveNameFromEmail = (emailStr) => {
-    if (!emailStr) return '';
-    const part = emailStr.split('@')[0].toLowerCase();
-    
-    // Special check for Varshini Duriseti combinations
-    if (part.includes('varshini') && part.includes('duriseti')) {
-      return 'Varshini Duriseti';
-    }
-    
-    // Split by dot, dash, underscore
-    if (/[._-]/.test(part)) {
-      return part
-        .replace(/[._-]/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
-        .trim();
-    }
-    
-    // Single run of letters with known prefixes/suffixes
-    if (part.startsWith('varshini')) {
-      const rest = part.slice(8);
-      return 'Varshini' + (rest ? ' ' + rest.charAt(0).toUpperCase() + rest.slice(1) : '');
-    }
-    if (part.endsWith('duriseti')) {
-      const rest = part.slice(0, part.length - 8);
-      return (rest ? rest.charAt(0).toUpperCase() + rest.slice(1) + ' ' : '') + 'Duriseti';
-    }
-    if (part.startsWith('alex')) {
-      const rest = part.slice(4);
-      return 'Alex' + (rest ? ' ' + rest.charAt(0).toUpperCase() + rest.slice(1) : '');
-    }
-
-    // Default capitalize
-    return part.charAt(0).toUpperCase() + part.slice(1);
-  };
-
-  const enterDashboard = (userData) => {
-    setUser(userData);
+  const enterDashboard = () => {
     setShowInit(true);
-    setTimeout(() => navigate('/app'), 3500);
+    setTimeout(() => navigate('/app'), 2000);
   };
 
-  // Standard email/password submit
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !password.trim()) return;
     setIsLoading(true);
 
-    const derived = deriveNameFromEmail(email);
-
-    setTimeout(() => {
-      enterDashboard({
-        name: name || derived || 'User',
-        email: email,
-        role: 'Business User',
-        avatarUrl: null,
-      });
-    }, 1000);
+    try {
+      await login(email, password);
+      toast.success('Welcome back!');
+      enterDashboard();
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        toast.error('Invalid email or password');
+      } else if (err.code === 'auth/too-many-requests') {
+        toast.error('Too many attempts. Try again later.');
+      } else {
+        toast.error(err.message || 'Login failed');
+      }
+      setIsLoading(false);
+    }
   };
 
-  // Simulated Google/Microsoft login submit
-  const handleSsoSubmit = (e) => {
+  const handleGoogleLogin = async () => {
+    try {
+      await googleLogin();
+      toast.success('Welcome back!');
+      enterDashboard();
+    } catch (err) {
+      console.error(err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error(err.message || 'Google Sign-In failed');
+      }
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
     e.preventDefault();
-    if (!ssoEmail.trim()) return;
-
-    const derived = deriveNameFromEmail(ssoEmail);
-    const finalName = ssoName.trim() || derived || 'User';
-    
-    // Choose appropriate avatar url based on login type
-    const avatarUrl = ssoType === 'google' 
-      ? `https://api.dicebear.com/7.x/initials/svg?seed=${finalName}&backgroundColor=4285f4` 
-      : `https://api.dicebear.com/7.x/initials/svg?seed=${finalName}&backgroundColor=00a4ef`;
-
-    enterDashboard({
-      name: finalName,
-      email: ssoEmail,
-      role: ssoType === 'google' ? 'Google Account' : 'Microsoft Account',
-      avatarUrl,
-    });
-
-    toast.success(`Welcome, ${finalName}! Signed in via ${ssoType === 'google' ? 'Google' : 'Microsoft'} SSO.`);
-    setSsoType(null);
+    if (!email.trim()) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+    try {
+      await resetPassword(email);
+      toast.success('Password reset email sent!');
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        toast.error('No account found with this email');
+      } else {
+        toast.error(err.message || 'Failed to send reset email');
+      }
+    }
   };
-
 
   if (showInit) {
     return <InitializationScreen />;
@@ -220,32 +190,52 @@ export function LoginPage() {
 
           <div className="mb-8">
             <h1 className="text-[32px] font-bold text-gray-900 mb-2">Welcome back</h1>
-            <p className="text-gray-500 text-[15px]">Please enter your details</p>
+            <p className="text-gray-500 text-[15px]">Please enter your details to sign in.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             
             {/* Email Input */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 relative">
               <label className="text-[14px] font-medium text-gray-700">Email address</label>
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-3 text-gray-900 text-[15px] focus:outline-none focus:border-[#6B46C1] focus:ring-1 focus:ring-[#6B46C1] transition-all"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input 
+                  type="email" 
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-3 text-gray-900 text-[15px] focus:outline-none focus:border-[#6B46C1] focus:ring-1 focus:ring-[#6B46C1] transition-all"
+                  placeholder="Enter your email"
+                />
+              </div>
             </div>
 
             {/* Password Input */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 relative">
               <label className="text-[14px] font-medium text-gray-700">Password</label>
-              <input 
-                type="password" 
-                required
-                defaultValue="••••••••"
-                className="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-3 text-gray-900 text-[15px] focus:outline-none focus:border-[#6B46C1] focus:ring-1 focus:ring-[#6B46C1] transition-all"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-10 text-gray-900 text-[15px] focus:outline-none focus:border-[#6B46C1] focus:ring-1 focus:ring-[#6B46C1] transition-all"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-[#6B46C1]"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
@@ -257,19 +247,23 @@ export function LoginPage() {
                   className="h-4 w-4 rounded border-gray-300 text-[#6B46C1] focus:ring-[#6B46C1]"
                 />
                 <label htmlFor="remember" className="ml-2 block text-[14px] text-gray-700">
-                  Remember for 30 days
+                  Remember me
                 </label>
               </div>
-              <a href="#" className="text-[14px] font-medium text-[#6B46C1] hover:text-[#553C9A] hover:underline">
-                Forgot password
-              </a>
+              <button 
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-[14px] font-medium text-[#6B46C1] hover:text-[#553C9A] hover:underline"
+              >
+                Forgot password?
+              </button>
             </div>
 
             {/* Sign In Button */}
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full py-2.5 bg-[#6B46C1] hover:bg-[#553C9A] text-white rounded-lg font-medium text-[15px] transition-colors flex justify-center items-center"
+              className="w-full py-2.5 bg-[#6B46C1] hover:bg-[#553C9A] text-white rounded-lg font-medium text-[15px] transition-colors flex justify-center items-center shadow-md shadow-[#6B46C1]/20"
             >
               {isLoading ? (
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -278,14 +272,26 @@ export function LoginPage() {
               )}
             </button>
 
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-gray-200"></div>
+              <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">Or continue with</span>
+              <div className="flex-grow border-t border-gray-200"></div>
+            </div>
+
             {/* Google Button */}
             <button
               type="button"
-              onClick={() => setSsoType('google')}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg text-gray-700 text-[15px] font-medium transition-colors mt-4"
+              onClick={handleGoogleLogin}
+              className="w-full py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-[15px] transition-colors flex justify-center items-center gap-2"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-              Sign in with Google
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                <path d="M1 1h22v22H1z" fill="none" />
+              </svg>
+              Google
             </button>
             
           </form>
@@ -293,170 +299,12 @@ export function LoginPage() {
           <div className="mt-8 text-center">
             <p className="text-[14px] text-gray-500">
               Don't have an account?{' '}
-              <a href="#" className="font-medium text-[#6B46C1] hover:underline">Sign up</a>
+              <Link to="/register" className="font-medium text-[#6B46C1] hover:underline">Sign up</Link>
             </p>
           </div>
 
         </motion.div>
       </div>
-
-      {/* ======================================================== */}
-      {/* SSO POPUP SIMULATION MODAL */}
-      {/* ======================================================== */}
-      <AnimatePresence>
-        {ssoType === 'google' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSsoType(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 10 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="w-full max-w-[448px] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col font-sans"
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Fake Browser Header (mobile style) */}
-              <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between text-[15px]">
-                <button onClick={() => setSsoType(null)} className="text-[#1a73e8] hover:bg-gray-50 px-2 py-1 rounded">Cancel</button>
-                <div className="flex items-center gap-1.5 text-gray-900 font-medium text-[14px]">
-                  <Lock size={12} className="text-gray-700" />
-                  accounts.google.com
-                </div>
-                <button className="text-[#1a73e8]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>
-                </button>
-              </div>
-
-              {/* Google Header */}
-              <div className="px-6 py-4 flex items-center gap-2 border-b border-gray-200">
-                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                <span className="text-gray-600 text-[15px] font-medium">Sign in with Google</span>
-              </div>
-
-              {/* Title Section */}
-              <div className="pt-8 pb-6 px-10 text-center">
-                <h1 className="text-[24px] text-[#202124] mb-2 font-normal">Choose an account</h1>
-                <p className="text-[16px] text-[#202124]">
-                  to continue to <span className="text-[#1a73e8] font-medium">Business Brain</span>
-                </p>
-              </div>
-
-              {/* Accounts List */}
-              <div className="flex-1 overflow-y-auto px-6 mb-4">
-                
-                {/* Account 1 */}
-                <button
-                  onClick={() => {
-                    enterDashboard({ name: 'Varshini Duriseti', email: 'varshini@businessbrain.ai', role: 'Google Account', avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=Varshini Duriseti&backgroundColor=4285f4` });
-                    toast.success('Welcome, Varshini! Signed in via Google.');
-                    setSsoType(null);
-                  }}
-                  className="w-full flex items-center gap-3 py-3 px-2 hover:bg-[#f8f9fa] border-b border-gray-200 transition-colors text-left"
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#1a73e8] text-white flex items-center justify-center font-medium text-sm">V</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#3c4043] text-[14px] font-medium truncate">Varshini Duriseti</p>
-                    <p className="text-[#5f6368] text-[12px] truncate">varshini@businessbrain.ai</p>
-                  </div>
-                </button>
-
-                {/* Account 2 */}
-                <button
-                  onClick={() => {
-                    enterDashboard({ name: 'Alex Mercer', email: 'ceo@businessbrain.ai', role: 'Google Account', avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=Alex Mercer&backgroundColor=4285f4` });
-                    toast.success('Welcome, Alex Mercer! Signed in via Google.');
-                    setSsoType(null);
-                  }}
-                  className="w-full flex items-center gap-3 py-3 px-2 hover:bg-[#f8f9fa] border-b border-gray-200 transition-colors text-left"
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#3c4043] text-white flex items-center justify-center font-medium text-sm">A</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#3c4043] text-[14px] font-medium truncate">Alex Mercer</p>
-                    <p className="text-[#5f6368] text-[12px] truncate">ceo@businessbrain.ai</p>
-                  </div>
-                </button>
-
-                {/* Use another account */}
-                <button className="w-full flex items-center gap-3 py-3 px-2 hover:bg-[#f8f9fa] border-b border-gray-200 transition-colors text-left text-[#3c4043]">
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#5f6368]"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  </div>
-                  <span className="text-[14px] font-medium">Use another account</span>
-                </button>
-              </div>
-
-              {/* Google Footer */}
-              <div className="px-8 pb-4">
-                <p className="text-[#5f6368] text-[12px] leading-relaxed mb-6">
-                  To continue, Google will share your name, email address, language preference and profile picture with Business Brain. Before using this app, you can review Business Brain's <a href="#" className="text-[#1a73e8] hover:underline">privacy policy</a> and <a href="#" className="text-[#1a73e8] hover:underline">terms of service</a>.
-                </p>
-                <div className="flex items-center justify-between text-[12px] text-[#5f6368] font-medium">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-gray-900">
-                    English (United Kingdom)
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-                  </div>
-                  <div className="flex gap-4">
-                    <a href="#" className="hover:bg-gray-100 px-1 py-0.5 rounded">Help</a>
-                    <a href="#" className="hover:bg-gray-100 px-1 py-0.5 rounded">Privacy</a>
-                    <a href="#" className="hover:bg-gray-100 px-1 py-0.5 rounded">Terms</a>
-                  </div>
-                </div>
-              </div>
-
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Existing Microsoft SSO fallback just in case */}
-        {ssoType === 'microsoft' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
-            onClick={() => setSsoType(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 30 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="w-full max-w-md bg-[#0B1120] border border-white/10 rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#94A3B8]">Sign in with Microsoft</span>
-                <button onClick={() => setSsoType(null)} className="p-1 rounded-lg hover:bg-white/10 text-[#94A3B8] hover:text-white transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
-              <form onSubmit={handleSsoSubmit} className="p-8 space-y-6">
-                <div className="flex flex-col items-center text-center mb-6">
-                  <Command size={48} className="text-[#00a4ef] mb-4" />
-                  <h3 className="text-xl font-bold text-white">Microsoft SSO</h3>
-                  <p className="text-sm text-[#94A3B8] mt-2">Connect your workspace account automatically</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    enterDashboard({ name: 'Varshini', email: 'varshini@businessbrain.ai', role: 'Microsoft Account', avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=Varshini&backgroundColor=00a4ef` });
-                    toast.success(`Welcome, Varshini! Signed in via Microsoft SSO.`);
-                    setSsoType(null);
-                  }}
-                  className="w-full py-3 bg-[#00a4ef] hover:bg-[#0078d4] text-white rounded-xl font-bold transition-all"
-                >
-                  Continue as Varshini
-                </button>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
     </div>
   );

@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { LandingLayout } from "@/layouts/LandingLayout";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
+import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "./ProtectedRoute";
 
 // Imports from the new folder structure
 import { LandingPage } from "@/pages/Landing";
@@ -39,8 +41,9 @@ import { MeetingsPage } from "@/pages/Meetings";
 
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route element={<LandingLayout />}>
+    <AuthProvider>
+      <Routes>
+        <Route element={<LandingLayout />}>
         <Route path="/" element={<LandingPage />} />
       </Route>
 
@@ -48,8 +51,10 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      <Route path="app" element={<DashboardLayout />}>
-        <Route index element={<DashboardPage />} />
+      {/* Protected App Routes */}
+      <Route path="app" element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<Navigate to="/app" replace />} />
         
         {/* Core Business */}
@@ -86,7 +91,9 @@ export function AppRoutes() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
+        </Route>
       </Route>
     </Routes>
+    </AuthProvider>
   );
 }
