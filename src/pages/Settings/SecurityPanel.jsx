@@ -59,7 +59,7 @@ export function SecurityPanel() {
       </GlassCard>
 
       {/* Grid: Sessions & API Keys */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         
         {/* Active Sessions */}
         <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">

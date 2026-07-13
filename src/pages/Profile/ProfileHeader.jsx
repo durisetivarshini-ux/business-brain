@@ -38,7 +38,7 @@ function IDCardModal({ isOpen, onClose, user }) {
                     <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF]">
-                      {user.name?.charAt(0)}
+                      {(user?.displayName || 'U').charAt(0)}
                     </span>
                   )}
                 </div>
@@ -46,7 +46,7 @@ function IDCardModal({ isOpen, onClose, user }) {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <h2 className="text-xl font-bold text-white truncate">{user.name}</h2>
+                  <h2 className="text-xl font-bold text-white truncate">{user?.displayName || 'User'}</h2>
                   <CheckCircle2 size={16} className="text-[#00D4FF] shrink-0" />
                 </div>
                 <p className="text-[#00D4FF] font-bold text-sm mb-3">{user.role}</p>
@@ -63,7 +63,7 @@ function IDCardModal({ isOpen, onClose, user }) {
             </div>
             {/* Bottom bar */}
             <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-r from-[#5B5FFF]/20 via-[#00D4FF]/20 to-[#EC4899]/20 border-t border-white/5 flex items-center px-6">
-              <p className="text-[10px] font-mono text-[#94A3B8]">BB-ENT-{user.name.toUpperCase().replace(' ','-')}-2026</p>
+              <p className="text-[10px] font-mono text-[#94A3B8]">BB-ENT-{(user?.displayName || 'USER').toUpperCase().replace(' ','-')}-2026</p>
             </div>
           </div>
 
@@ -89,7 +89,7 @@ function IDCardModal({ isOpen, onClose, user }) {
 
 function ShareModal({ isOpen, onClose, user }) {
   const [copied, setCopied] = useState(false);
-  const profileUrl = `https://businessbrain.ai/profiles/${user.name.toLowerCase().replace(' ', '-')}`;
+  const profileUrl = `https://businessbrain.ai/profiles/${(user?.displayName || 'user').toLowerCase().replace(' ', '-')}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profileUrl).catch(() => {});
@@ -122,11 +122,11 @@ function ShareModal({ isOpen, onClose, user }) {
                 {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  user.name?.charAt(0)
+                  (user?.displayName || 'U').charAt(0)
                 )}
               </div>
               <div>
-                <p className="font-bold text-white">{user.name}</p>
+                <p className="font-bold text-white">{user?.displayName || 'User'}</p>
                 <p className="text-sm text-[#00D4FF]">{user.role}</p>
               </div>
             </div>

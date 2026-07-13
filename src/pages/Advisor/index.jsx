@@ -70,21 +70,88 @@ const MOCK_RESPONSES = {
   ops: `### Operational Cost Optimization\n\n**Identified Savings: $142,000/year**\n\n1. **Cloud waste:** Rightsize 14 idle EC2 instances → saves ~$48K/yr\n2. **SaaS sprawl:** 3 overlapping tools in marketing stack → saves ~$36K/yr\n3. **Support efficiency:** Implement AI deflection for L1 tickets → saves ~$58K/yr\n\n**Priority:** Cloud rightsizing has the fastest ROI (starts saving in 30 days).`,
 };
 
-function formatReportText(messages) {
-  const lines = [`BUSINESS BRAIN AI — STRATEGY SESSION REPORT`, `Generated: ${new Date().toLocaleString()}`, `${'─'.repeat(60)}\n`];
-  messages.forEach(m => {
+function formatReportHTML(messages) {
+  const htmlRows = messages.map(m => {
     if (m.role === 'user') {
-      lines.push(`YOU:\n${m.content}\n`);
-    } else if (m.role === 'ai') {
+      return `
+        <div class="msg flex-right">
+          <div>
+            <div class="role-user">You</div>
+            <div class="content-user">${m.content}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      let htmlContent = '';
       if (m.content === 'churn_analysis') {
-        lines.push(`BUSINESS BRAIN AI:\nChurn Risk Analysis — Q3\n• Missing API Features: 42%\n• Budget Constraints: 28%\n• Slow Support Response: 15%\nRecommendation: 2 additional Enterprise support agents and API v2 prioritization.\n`);
+        htmlContent = `
+          <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 16px;">Top Churn Factors (Q3)</h4>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Missing API Features</span> <strong style="color: #ef4444; background: rgba(239,68,68,0.1); padding: 2px 8px; border-radius: 10px; font-size: 12px;">42%</strong></li>
+            <li style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Budget Constraints</span> <strong style="color: #f59e0b; background: rgba(245,158,11,0.1); padding: 2px 8px; border-radius: 10px; font-size: 12px;">28%</strong></li>
+            <li style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Slow Support Response</span> <strong style="color: #8b5cf6; background: rgba(139,92,246,0.1); padding: 2px 8px; border-radius: 10px; font-size: 12px;">15%</strong></li>
+          </ul>
+          <p style="color: #94a3b8; font-size: 13px; margin-top: 15px; line-height: 1.5;">Recommendation: 2 additional Enterprise support agents and API v2 prioritization.</p>
+        `;
       } else {
-        lines.push(`BUSINESS BRAIN AI:\n${m.content.replace(/#{1,4} /g, '').replace(/\*\*/g, '').replace(/\|/g, ' | ')}\n`);
+        htmlContent = m.content
+          .replace(/### (.*)/g, '<h3 style="color:#00D4FF; margin:10px 0 15px 0;">$1</h3>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#fff;">$1</strong>')
+          .replace(/\|(.*)\|/g, '<div style="font-family: monospace; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 5px; margin: 2px 0;">$1</div>') // hack for quick table render
+          .replace(/\n/g, '<br>');
       }
+      
+      return `
+        <div class="msg">
+          <div>
+            <div class="role-ai">Business Brain AI</div>
+            <div class="content-ai">${htmlContent}</div>
+          </div>
+        </div>
+      `;
     }
-  });
-  lines.push(`${'─'.repeat(60)}\n© ${new Date().getFullYear()} Business Brain Inc. All rights reserved.`);
-  return lines.join('\n');
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Strategy Session Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+  body { font-family: 'Inter', sans-serif; background-color: #050816; color: #f8fafc; margin: 0; padding: 40px; }
+  .container { max-width: 800px; margin: 0 auto; background: #0b1120; padding: 50px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+  h1 { color: #fff; font-size: 32px; margin: 0 0 10px 0; letter-spacing: -0.5px; }
+  .date { color: #94a3b8; font-size: 14px; margin-bottom: 40px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 25px; }
+  .msg { margin-bottom: 24px; width: 100%; display: flex; flex-direction: column; }
+  .flex-right { align-items: flex-end; }
+  .role-user { font-weight: 700; color: #94a3b8; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; text-align: right; }
+  .role-ai { font-weight: 700; color: #00D4FF; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .content-user { background: linear-gradient(to right, #5B5FFF, #7C3AED); padding: 18px 24px; border-radius: 20px 20px 0 20px; color: #fff; display: inline-block; max-width: 85%; box-shadow: 0 10px 25px rgba(91,95,255,0.25); line-height: 1.6; font-size: 15px; }
+  .content-ai { background: rgba(255,255,255,0.03); padding: 20px 24px; border-radius: 20px 20px 20px 0; border: 1px solid rgba(255,255,255,0.05); display: inline-block; max-width: 85%; line-height: 1.7; color: #cbd5e1; font-size: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .footer { margin-top: 50px; text-align: center; color: #475569; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 25px; }
+  @media print {
+    body { background-color: #fff; color: #000; padding: 0; }
+    .container { background: #fff; border: none; box-shadow: none; max-width: 100%; padding: 20px; }
+    h1 { color: #000; }
+    .content-user { background: #f1f5f9; color: #000; box-shadow: none; border: 1px solid #e2e8f0; }
+    .content-ai { background: #fff; border: 1px solid #e2e8f0; color: #000; box-shadow: none; }
+    .role-ai { color: #2563eb; }
+    .date, .footer { border-color: #e2e8f0; color: #64748b; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Strategy Session Report</h1>
+    <div class="date">Generated by <strong>Business Brain AI</strong> • ${new Date().toLocaleString()}</div>
+    ${htmlRows}
+    <div class="footer">
+      © ${new Date().getFullYear()} Business Brain Inc. Confidential and Proprietary.
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 export function AdvisorPage() {
@@ -122,12 +189,12 @@ export function AdvisorPage() {
   const handleExport = () => {
     setExporting(true);
     setTimeout(() => {
-      const text = formatReportText(messages);
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const text = formatReportHTML(messages);
+      const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `AI_Strategy_Report_${new Date().toISOString().slice(0, 10)}.txt`;
+      a.download = `AI_Strategy_Report_${new Date().toISOString().slice(0, 10)}.html`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
