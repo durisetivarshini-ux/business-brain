@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register, googleLogin } = useAuth();
+  const { register, googleLogin, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showInit, setShowInit] = useState(false);
   
@@ -18,6 +18,13 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Auto redirect if already logged in (e.g. returning from Google Redirect)
+  useEffect(() => {
+    if (user) {
+      navigate('/app', { replace: true });
+    }
+  }, [user, navigate]);
 
   const enterDashboard = () => {
     setShowInit(true);
@@ -62,8 +69,7 @@ export function RegisterPage() {
   const handleGoogleLogin = async () => {
     try {
       await googleLogin();
-      toast.success('Welcome!');
-      enterDashboard();
+      // Code won't reach here on success because the page redirects to Google
     } catch (err) {
       console.error("Google Registration Error:", err);
       if (err.message && err.message.includes("not configured")) {

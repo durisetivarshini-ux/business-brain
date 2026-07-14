@@ -4,7 +4,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
@@ -22,6 +23,37 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
+
+    // Handle Redirect Result for Google Sign-In
+    getRedirectResult(auth).then(async (userCredential) => {
+      if (userCredential && db) {
+        try {
+          const userRef = doc(db, "users", userCredential.user.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (!userSnap.exists()) {
+            await setDoc(userRef, {
+              uid: userCredential.user.uid,
+              fullName: userCredential.user.displayName,
+              email: userCredential.user.email,
+              photoURL: userCredential.user.photoURL || "",
+              role: "user",
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp()
+            });
+          } else {
+            await setDoc(userRef, {
+              lastLogin: serverTimestamp()
+            }, { merge: true });
+          }
+        } catch (err) {
+          console.error("Failed to sync Redirect Google user with Firestore:", err);
+        }
+      }
+    }).catch(err => {
+      console.error("Redirect Auth Error:", err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -78,36 +110,7 @@ export function AuthProvider({ children }) {
 
   const googleLogin = async () => {
     if (!auth) throw new Error("Firebase Authentication is not configured.");
-    const userCredential = await signInWithPopup(auth, googleProvider);
-    
-    if (db) {
-      try {
-        const userRef = doc(db, "users", userCredential.user.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (!userSnap.exists()) {
-          // New Google User
-          await setDoc(userRef, {
-            uid: userCredential.user.uid,
-            fullName: userCredential.user.displayName,
-            email: userCredential.user.email,
-            photoURL: userCredential.user.photoURL || "",
-            role: "user",
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp()
-          });
-        } else {
-          // Existing Google User
-          await setDoc(userRef, {
-            lastLogin: serverTimestamp()
-          }, { merge: true });
-        }
-      } catch (err) {
-        console.error("Failed to sync Google user with Firestore:", err);
-      }
-    }
-    
-    return userCredential;
+    return signInWithRedirect(auth, googleProvider);
   };
 
   const logout = () => {
