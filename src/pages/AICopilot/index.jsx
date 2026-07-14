@@ -404,7 +404,7 @@ export function CopilotPage() {
       if (error.name === 'AbortError') return; // User stopped it
       
       console.error('Gemini API Error:', error);
-      let errorMsg = `**Error communicating with AI:**\n\nWe encountered an issue processing your request:\n\`\`\`\n${error.message}\n\`\`\``;
+      let errorMsg = `**Error communicating with AI:**\n\nWe encountered an issue processing your request:\n\n\`\`\`text\n${error.message}\n\`\`\`\n\n*If you see a 404 error here, it means the Google account you used to generate the API key is restricted from accessing the Gemini model.*`;
       
       setMessages(prev => {
         const withoutLast = prev.slice(0, -1);

@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register, googleLogin, user } = useAuth();
+  const { register, googleLogin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showInit, setShowInit] = useState(false);
   
@@ -18,13 +18,6 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Auto redirect if already logged in (e.g. returning from Google Redirect)
-  useEffect(() => {
-    if (user) {
-      navigate('/app', { replace: true });
-    }
-  }, [user, navigate]);
 
   const enterDashboard = () => {
     setShowInit(true);
@@ -56,9 +49,9 @@ export function RegisterPage() {
       if (err.message && err.message.includes("not configured")) {
          toast.error("Firebase is not configured yet. Please check Vercel settings.");
       } else if (err.code === 'auth/email-already-in-use') {
-        toast.error('Email is already registered');
+        toast.error('Email already exists. Please login.');
       } else if (err.code === 'auth/weak-password') {
-        toast.error('Password is too weak');
+        toast.error('Password must be at least 6 characters.');
       } else {
         toast.error('Registration failed. Please try again.');
       }
@@ -69,13 +62,16 @@ export function RegisterPage() {
   const handleGoogleLogin = async () => {
     try {
       await googleLogin();
-      // Code won't reach here on success because the page redirects to Google
+      toast.success('Account created successfully!');
+      enterDashboard();
     } catch (err) {
       console.error("Google Registration Error:", err);
+      if (err.code === 'auth/popup-closed-by-user') return;
+
       if (err.message && err.message.includes("not configured")) {
          toast.error("Firebase is not configured yet. Please check Vercel settings.");
-      } else if (err.code !== 'auth/popup-closed-by-user') {
-        toast.error(`Google Sign-In failed: ${err.message}`);
+      } else {
+         toast.error(`Google Registration failed: ${err.message}`);
       }
     }
   };

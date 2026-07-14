@@ -9,19 +9,12 @@ import { toast } from 'react-hot-toast';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login, googleLogin, resetPassword, user } = useAuth();
+  const { login, googleLogin, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showInit, setShowInit] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Auto redirect if already logged in (e.g. returning from Google Redirect)
-  React.useEffect(() => {
-    if (user) {
-      navigate('/app', { replace: true });
-    }
-  }, [user, navigate]);
 
   const enterDashboard = () => {
     setShowInit(true);
@@ -55,9 +48,13 @@ export function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       await googleLogin();
-      // Code won't reach here on success because the page redirects to Google
+      toast.success('Welcome back!');
+      enterDashboard();
     } catch (err) {
       console.error("Google Login Error:", err);
+      // Don't toast if they just closed the popup
+      if (err.code === 'auth/popup-closed-by-user') return;
+      
       if (err.message && err.message.includes("not configured")) {
          toast.error("Firebase is not configured yet. Please check Vercel settings.");
       } else {
