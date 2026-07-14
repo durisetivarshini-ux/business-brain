@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CustomerDashboard } from './CustomerDashboard';
 import { X, Upload, User, Phone, Mail, Building2, Tag, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Portal } from '@/components/ui/Portal';
 
 function AddLeadModal({ onClose }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', stage: 'Prospecting', value: '' });
@@ -29,7 +30,8 @@ function AddLeadModal({ onClose }) {
   if (created) {
     const color = stageColors[created.stage] || '#5B5FFF';
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+      <Portal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
         <div className="w-full max-w-md rounded-2xl border border-[#5B5FFF]/30 bg-[#0B1120] shadow-2xl p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-[#5B5FFF]/10 blur-[60px] rounded-full pointer-events-none" />
           <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white z-10"><X size={20} /></button>
@@ -77,11 +79,13 @@ function AddLeadModal({ onClose }) {
           </div>
         </div>
       </div>
+    </Portal>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <Portal>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
         <div className="flex items-center gap-3 mb-6">
@@ -133,6 +137,7 @@ function AddLeadModal({ onClose }) {
         </form>
       </div>
     </div>
+    </Portal>
   );
 }
 
@@ -149,7 +154,8 @@ function ImportDataModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <Portal>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
         <div className="flex items-center gap-3 mb-6">
@@ -200,6 +206,7 @@ function ImportDataModal({ onClose }) {
         )}
       </div>
     </div>
+    </Portal>
   );
 }
 

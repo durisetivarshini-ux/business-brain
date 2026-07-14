@@ -3,6 +3,7 @@ import { FinanceDashboard } from './FinanceDashboard';
 import { CashFlowPredictor } from './CashFlowPredictor';
 import { FraudDetection } from './FraudDetection';
 import toast from 'react-hot-toast';
+import { Portal } from '@/components/ui/Portal';
 import { X, FileText, Loader2, CheckCircle, Download, IndianRupee, Calendar, Tag, Hash, Building2 } from 'lucide-react';
 
 // ── Download invoice as text ──
@@ -147,7 +148,8 @@ function NewInvoiceModal({ onClose }) {
   // ── Invoice Preview Screen ──
   if (createdInvoice) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+      <Portal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
         <div className="w-full max-w-md rounded-2xl border border-[#10B981]/30 bg-[#0B1120] shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-[#10B981]/10 blur-[60px] rounded-full pointer-events-none" />
           <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors z-10"><X size={20} /></button>
@@ -211,12 +213,14 @@ function NewInvoiceModal({ onClose }) {
           </div>
         </div>
       </div>
+    </Portal>
     );
   }
 
   // ── Form Screen ──
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <Portal>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
         <div className="flex items-center gap-3 mb-6">
@@ -262,6 +266,7 @@ function NewInvoiceModal({ onClose }) {
         </form>
       </div>
     </div>
+    </Portal>
   );
 }
 

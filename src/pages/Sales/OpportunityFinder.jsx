@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Search, Zap, ArrowUpRight, TrendingUp, Globe2, Target, X, CheckCircle, Calendar, Phone, Send, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../hooks/useAuth';
 
 const opportunities = [
   {
@@ -9,7 +10,7 @@ const opportunities = [
     desc: 'Client approaching API limits. 95% probability of upgrading to Enterprise tier.',
     icon: <TrendingUp className="text-[#00D4FF]"/>, color: 'text-[#00D4FF]', bg: 'bg-[#00D4FF]/20', accent: '#00D4FF',
     nextSteps: [
-      { icon: <Phone size={14}/>, text: 'Call account manager – John Doe', time: 'Today, 3 PM' },
+      { icon: <Phone size={14}/>, text: 'Call account manager', time: 'Today, 3 PM' },
       { icon: <Send size={14}/>, text: 'Send Enterprise tier proposal deck', time: 'Today, 5 PM' },
       { icon: <Calendar size={14}/>, text: 'Schedule upgrade demo', time: 'Tomorrow, 11 AM' },
     ],
@@ -36,7 +37,7 @@ const opportunities = [
   },
 ];
 
-function ActionModal({ opp, onClose }) {
+function ActionModal({ opp, onClose, onComplete, user }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
@@ -89,7 +90,9 @@ function ActionModal({ opp, onClose }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span style={{ color: opp.accent }}>{step.icon}</span>
-                      <p className={`text-sm font-semibold truncate ${completedSteps.includes(i) ? 'text-[#94A3B8] line-through' : 'text-white'}`}>{step.text}</p>
+                      <p className={`text-sm font-semibold truncate ${completedSteps.includes(i) ? 'text-[#94A3B8] line-through' : 'text-white'}`}>
+                        {step.text}
+                      </p>
                     </div>
                     <p className="text-xs text-[#94A3B8]">{step.time}</p>
                   </div>
@@ -102,7 +105,7 @@ function ActionModal({ opp, onClose }) {
           </div>
 
           <button
-            onClick={onClose}
+            onClick={() => onComplete(opp.id)}
             className="w-full py-3 rounded-xl text-white text-sm font-bold hover:scale-[1.02] transition-all flex items-center justify-center gap-2 relative z-10"
             style={{ background: `linear-gradient(135deg, ${opp.accent}, #00D4FF)` }}
           >
@@ -152,7 +155,14 @@ function ActionModal({ opp, onClose }) {
 }
 
 export function OpportunityFinder() {
+  const { user } = useAuth();
+  const [opps, setOpps] = useState(opportunities);
   const [activeOpp, setActiveOpp] = useState(null);
+
+  const handleComplete = (id) => {
+    setActiveOpp(null);
+    toast.success('Opportunity steps logged successfully!', { icon: '✅' });
+  };
 
   return (
     <GlassCard className="p-0 border-[#00D4FF]/20 bg-[#0B1120]/60 mt-6 overflow-hidden flex flex-col">
@@ -170,7 +180,13 @@ export function OpportunityFinder() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-        {opportunities.map((opp, i) => (
+        {opps.length === 0 ? (
+          <div className="col-span-3 p-12 text-center text-[#94A3B8]">
+            <CheckCircle className="mx-auto mb-3 text-[#10B981]" size={32} />
+            <p className="font-bold text-white mb-1">All Caught Up!</p>
+            <p className="text-sm">No pending high-value opportunities right now.</p>
+          </div>
+        ) : opps.map((opp, i) => (
           <div key={opp.id} className={`p-6 ${i !== 2 ? 'border-r border-white/5' : ''} hover:bg-white/5 transition-colors group cursor-pointer flex flex-col h-full`}>
             <div className="flex justify-between items-start mb-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${opp.bg}`}>{opp.icon}</div>
@@ -189,7 +205,7 @@ export function OpportunityFinder() {
         ))}
       </div>
 
-      {activeOpp && <ActionModal opp={activeOpp} onClose={() => setActiveOpp(null)} />}
+      {activeOpp && <ActionModal opp={activeOpp} onClose={() => setActiveOpp(null)} onComplete={handleComplete} user={user} />}
     </GlassCard>
   );
 }

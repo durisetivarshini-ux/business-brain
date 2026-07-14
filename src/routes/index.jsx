@@ -38,6 +38,8 @@ import { DigitalTwinPage } from "@/pages/DigitalTwin";
 import { GoalsPage } from "@/pages/Goals";
 import { SustainabilityPage } from "@/pages/Sustainability";
 import { MeetingsPage } from "@/pages/Meetings";
+import { BranchDetail } from "@/pages/Branches/BranchDetail";
+import { InventoryForecast } from "@/pages/Inventory/Forecast";
 
 export function AppRoutes() {
   return (
@@ -71,7 +73,9 @@ export function AppRoutes() {
         {/* Operations & Supply */}
         <Route path="erp" element={<ERPPage />} />
         <Route path="branches" element={<BranchesPage />} />
+        <Route path="branches/:branchId" element={<BranchDetail />} />
         <Route path="inventory" element={<InventoryPage />} />
+        <Route path="inventory/forecast" element={<InventoryForecast />} />
         
         {/* AI & Intelligence */}
         <Route path="ai-copilot" element={<CopilotPage />} />

@@ -25,37 +25,32 @@ export function OperationsDashboard() {
 
       {/* 3. Visual Components Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        
-        {/* Left Column: Warehouse & Logistics */}
-        <div className="flex flex-col gap-8">
-          <section>
-            <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
-              Warehouse Map & Capacity
-            </h2>
-            <WarehouseMap />
-          </section>
-          
-          <section>
-            <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
-              Live Logistics Tracker
-            </h2>
-            <LogisticsTracker />
-          </section>
-        </div>
+        {/* Left Column: Warehouse Map */}
+        <section>
+          <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
+            Warehouse Map & Capacity
+          </h2>
+          <WarehouseMap />
+        </section>
 
         {/* Right Column: Manufacturing */}
-        <div className="flex flex-col gap-8">
-          <section className="flex-1">
-            <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
-              Manufacturing Status
-            </h2>
-            <ManufacturingStatus />
-          </section>
-        </div>
-
+        <section>
+          <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
+            Manufacturing Status
+          </h2>
+          <ManufacturingStatus />
+        </section>
       </div>
 
-      {/* 4. Analytics */}
+      {/* 4. Live Logistics Tracker */}
+      <section>
+        <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
+          Live Logistics Tracker & Fleet Telemetry
+        </h2>
+        <LogisticsTracker />
+      </section>
+
+      {/* 5. Analytics */}
       <section>
         <h2 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 flex items-center gap-2">
           Supply Chain Analytics
