@@ -31,21 +31,35 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    if (!auth) throw new Error("Firebase Authentication is not configured.");
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    
-    // Update last login
-    if (db) {
-      try {
-        await setDoc(doc(db, "users", userCredential.user.uid), {
-          lastLogin: serverTimestamp()
-        }, { merge: true });
-      } catch (err) {
-        console.warn("Failed to update last login:", err);
-      }
+    console.log("AuthContext: login called");
+    if (!auth) {
+      console.error("AuthContext: Firebase Authentication is not configured.");
+      throw new Error("Firebase Authentication is not configured.");
     }
     
-    return userCredential;
+    try {
+      console.log("AuthContext: Calling signInWithEmailAndPassword...");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log("AuthContext: signInWithEmailAndPassword succeeded", userCredential.user.uid);
+      
+      // Update last login
+      if (db) {
+        console.log("AuthContext: Updating lastLogin in Firestore...");
+        try {
+          await setDoc(doc(db, "users", userCredential.user.uid), {
+            lastLogin: serverTimestamp()
+          }, { merge: true });
+          console.log("AuthContext: Firestore update succeeded");
+        } catch (err) {
+          console.warn("AuthContext: Failed to update last login:", err);
+        }
+      }
+      
+      return userCredential;
+    } catch (error) {
+      console.error("AuthContext: signInWithEmailAndPassword FAILED", error.code, error.message);
+      throw error;
+    }
   };
 
   const register = async (name, email, password) => {
@@ -78,37 +92,51 @@ export function AuthProvider({ children }) {
   };
 
   const googleLogin = async () => {
-    if (!auth) throw new Error("Firebase Authentication is not configured.");
-    const userCredential = await signInWithPopup(auth, googleProvider);
-    
-    if (db) {
-      try {
-        const userRef = doc(db, "users", userCredential.user.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (!userSnap.exists()) {
-          // New Google User
-          await setDoc(userRef, {
-            uid: userCredential.user.uid,
-            fullName: userCredential.user.displayName,
-            email: userCredential.user.email,
-            photoURL: userCredential.user.photoURL || "",
-            role: "user",
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp()
-          });
-        } else {
-          // Existing Google User
-          await setDoc(userRef, {
-            lastLogin: serverTimestamp()
-          }, { merge: true });
-        }
-      } catch (err) {
-        console.error("Failed to sync Google user with Firestore:", err);
-      }
+    console.log("AuthContext: googleLogin called");
+    if (!auth) {
+      console.error("AuthContext: Firebase Authentication is not configured.");
+      throw new Error("Firebase Authentication is not configured.");
     }
     
-    return userCredential;
+    try {
+      console.log("AuthContext: Calling signInWithPopup(auth, googleProvider)...");
+      const userCredential = await signInWithPopup(auth, googleProvider);
+      console.log("AuthContext: signInWithPopup succeeded", userCredential.user.uid);
+      
+      if (db) {
+        console.log("AuthContext: Checking Firestore for existing Google user...");
+        try {
+          const userRef = doc(db, "users", userCredential.user.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (!userSnap.exists()) {
+            console.log("AuthContext: Creating new user document in Firestore");
+            await setDoc(userRef, {
+              uid: userCredential.user.uid,
+              fullName: userCredential.user.displayName,
+              email: userCredential.user.email,
+              photoURL: userCredential.user.photoURL || "",
+              role: "user",
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp()
+            });
+          } else {
+            console.log("AuthContext: Updating existing user document in Firestore");
+            await setDoc(userRef, {
+              lastLogin: serverTimestamp()
+            }, { merge: true });
+          }
+          console.log("AuthContext: Firestore sync succeeded");
+        } catch (err) {
+          console.error("AuthContext: Failed to sync Google user with Firestore:", err);
+        }
+      }
+      
+      return userCredential;
+    } catch (error) {
+      console.error("AuthContext: signInWithPopup FAILED", error.code, error.message);
+      throw error;
+    }
   };
 
   const logout = () => {
