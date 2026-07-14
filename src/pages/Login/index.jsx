@@ -31,13 +31,15 @@ export function LoginPage() {
       toast.success('Welcome back!');
       enterDashboard();
     } catch (err) {
-      console.error(err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      console.error("Login Error:", err);
+      if (err.message && err.message.includes("not configured")) {
+         toast.error("Firebase is not configured yet. Please check Vercel settings.");
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         toast.error('Invalid email or password');
       } else if (err.code === 'auth/too-many-requests') {
         toast.error('Too many attempts. Try again later.');
       } else {
-        toast.error(err.message || 'Login failed');
+        toast.error('Login failed. Please try again.');
       }
       setIsLoading(false);
     }
@@ -49,9 +51,11 @@ export function LoginPage() {
       toast.success('Welcome back!');
       enterDashboard();
     } catch (err) {
-      console.error(err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        toast.error(err.message || 'Google Sign-In failed');
+      console.error("Google Login Error:", err);
+      if (err.message && err.message.includes("not configured")) {
+         toast.error("Firebase is not configured yet. Please check Vercel settings.");
+      } else if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error('Google Sign-In failed. Please try again.');
       }
     }
   };
