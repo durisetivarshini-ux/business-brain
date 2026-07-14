@@ -23,6 +23,7 @@ try {
     console.error("CRITICAL ERROR: Firebase Environment Variables are missing! Please add VITE_FIREBASE_API_KEY etc. to your Vercel Project Settings -> Environment Variables.");
     // Mock to prevent immediate destructuring crashes
     auth = { 
+      isMock: true,
       currentUser: null, 
       onAuthStateChanged: (cb) => { cb(null); return () => {}; },
       signOut: async () => {}

@@ -24,11 +24,23 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  const login = (email, password) => {
+  const login = async (email, password) => {
+    if (auth?.isMock) {
+      console.warn("Using Mock Login (Firebase missing)");
+      const mockUser = { uid: 'mock-123', email, displayName: 'Demo User', photoURL: 'https://ui-avatars.com/api/?name=Demo+User' };
+      setUser(mockUser);
+      return { user: mockUser };
+    }
     return signInWithEmailAndPassword(auth, email, password);
   };
 
   const register = async (name, email, password) => {
+    if (auth?.isMock) {
+      console.warn("Using Mock Register (Firebase missing)");
+      const mockUser = { uid: 'mock-123', email, displayName: name, photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}` };
+      setUser(mockUser);
+      return { user: mockUser };
+    }
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, {
       displayName: name
@@ -38,19 +50,37 @@ export function AuthProvider({ children }) {
     return userCredential;
   };
 
-  const googleLogin = () => {
+  const googleLogin = async () => {
+    if (auth?.isMock) {
+      console.warn("Using Mock Google Login (Firebase missing)");
+      const mockUser = { uid: 'mock-google-123', email: 'demo@google.com', displayName: 'Google User', photoURL: 'https://ui-avatars.com/api/?name=Google+User' };
+      setUser(mockUser);
+      return { user: mockUser };
+    }
     return signInWithPopup(auth, googleProvider);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (auth?.isMock) {
+      setUser(null);
+      return;
+    }
     return signOut(auth);
   };
 
-  const resetPassword = (email) => {
+  const resetPassword = async (email) => {
+    if (auth?.isMock) {
+      console.warn("Mock Password Reset");
+      return;
+    }
     return sendPasswordResetEmail(auth, email);
   };
 
   const updateUserProfile = async (data) => {
+    if (auth?.isMock) {
+      setUser(prev => ({ ...prev, ...data, displayName: data.name || prev?.displayName }));
+      return;
+    }
     if (auth.currentUser) {
       await updateProfile(auth.currentUser, {
         displayName: data.name || auth.currentUser.displayName,
