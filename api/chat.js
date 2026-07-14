@@ -42,9 +42,14 @@ export default async function handler(req, res) {
     }
 
     console.log('[BACKEND TRACE] Initializing GoogleGenerativeAI client...');
+    console.log("API Key Exists:", !!apiKey);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-1.5-flash.');
+    const modelName = "gemini-2.5-flash";
+    console.log("Model:", modelName);
+    console.log("SDK Version Loaded: @google/generative-ai (see package.json)");
+    
+    const model = genAI.getGenerativeModel({ model: modelName });
+    console.log(`[BACKEND TRACE] Gemini client initialized successfully with model ${modelName}.`);
 
     // Format history for Gemini
     const formattedHistory = [
