@@ -45,14 +45,19 @@ export function AuthProvider({ children }) {
       // Update last login
       if (db) {
         console.log("AuthContext: Updating lastLogin in Firestore...");
-        try {
-          await setDoc(doc(db, "users", userCredential.user.uid), {
-            lastLogin: serverTimestamp()
-          }, { merge: true });
-          console.log("AuthContext: Firestore update succeeded");
-        } catch (err) {
-          console.warn("AuthContext: Failed to update last login:", err);
-        }
+        (async () => {
+          try {
+            await Promise.race([
+              setDoc(doc(db, "users", userCredential.user.uid), {
+                lastLogin: serverTimestamp()
+              }, { merge: true }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 5000))
+            ]);
+            console.log("AuthContext: Firestore update succeeded");
+          } catch (err) {
+            console.warn("AuthContext: Failed to update last login:", err.message);
+          }
+        })();
       }
       
       return userCredential;
@@ -105,31 +110,38 @@ export function AuthProvider({ children }) {
       
       if (db) {
         console.log("AuthContext: Checking Firestore for existing Google user...");
-        try {
-          const userRef = doc(db, "users", userCredential.user.uid);
-          const userSnap = await getDoc(userRef);
-          
-          if (!userSnap.exists()) {
-            console.log("AuthContext: Creating new user document in Firestore");
-            await setDoc(userRef, {
-              uid: userCredential.user.uid,
-              fullName: userCredential.user.displayName,
-              email: userCredential.user.email,
-              photoURL: userCredential.user.photoURL || "",
-              role: "user",
-              createdAt: serverTimestamp(),
-              lastLogin: serverTimestamp()
-            });
-          } else {
-            console.log("AuthContext: Updating existing user document in Firestore");
-            await setDoc(userRef, {
-              lastLogin: serverTimestamp()
-            }, { merge: true });
+        // Fire-and-forget: Do not block login if Firestore is uninitialized or hanging
+        (async () => {
+          try {
+            const userRef = doc(db, "users", userCredential.user.uid);
+            // Add a timeout to getDoc so it doesn't hang forever
+            const userSnap = await Promise.race([
+              getDoc(userRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 5000))
+            ]);
+            
+            if (!userSnap.exists()) {
+              console.log("AuthContext: Creating new user document in Firestore");
+              await setDoc(userRef, {
+                uid: userCredential.user.uid,
+                fullName: userCredential.user.displayName,
+                email: userCredential.user.email,
+                photoURL: userCredential.user.photoURL || "",
+                role: "user",
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
+              });
+            } else {
+              console.log("AuthContext: Updating existing user document in Firestore");
+              await setDoc(userRef, {
+                lastLogin: serverTimestamp()
+              }, { merge: true });
+            }
+            console.log("AuthContext: Firestore sync succeeded");
+          } catch (err) {
+            console.error("AuthContext: Failed to sync Google user with Firestore:", err.message);
           }
-          console.log("AuthContext: Firestore sync succeeded");
-        } catch (err) {
-          console.error("AuthContext: Failed to sync Google user with Firestore:", err);
-        }
+        })();
       }
       
       return userCredential;

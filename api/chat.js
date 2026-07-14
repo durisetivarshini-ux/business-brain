@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     console.log('[BACKEND TRACE] Initializing GoogleGenerativeAI client...');
     console.log("API Key Exists:", !!apiKey);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = "gemini-2.5-flash";
+    const modelName = "gemini-2.0-flash";
     console.log("Model:", modelName);
     console.log("SDK Version Loaded: @google/generative-ai (see package.json)");
     
