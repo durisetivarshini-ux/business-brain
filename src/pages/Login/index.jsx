@@ -55,7 +55,7 @@ export function LoginPage() {
       if (err.message && err.message.includes("not configured")) {
          toast.error("Firebase is not configured yet. Please check Vercel settings.");
       } else if (err.code !== 'auth/popup-closed-by-user') {
-        toast.error('Google Sign-In failed. Please try again.');
+        toast.error(`Google Sign-In failed: ${err.message}`);
       }
     }
   };
