@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase Auth Debugger</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    button { padding: 10px; margin: 5px; font-size: 16px; cursor: pointer; }
+    #logs { background: #111; color: #0f0; padding: 15px; border-radius: 5px; height: 400px; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Firebase Auth Debugger</h2>
+  <button id="btnPopup">1. Test signInWithPopup</button>
+  <button id="btnRedirect">2. Test signInWithRedirect</button>
+  <button id="btnCheck">3. Check Redirect Result</button>
+  <div id="logs">Initializing logs...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const log = (msg) => {
+      const logs = document.getElementById('logs');
+      logs.innerHTML += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+      logs.scrollTop = logs.scrollHeight;
+    };
+
+    window.onerror = (msg, url, line, col, error) => {
+      log(`WINDOW ERROR: ${msg}\n${error?.stack}`);
+    };
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA2-GCcNWgQ9LiKRJAYcl0scY8iRcMKh9w",
+      authDomain: "business-brain-4424c.firebaseapp.com",
+      projectId: "business-brain-4424c",
+      storageBucket: "business-brain-4424c.firebasestorage.app",
+      messagingSenderId: "575965768724",
+      appId: "1:575965768724:web:431c1cf7189a1ee3ed0b01"
+    };
+
+    log("Initializing Firebase App...");
+    let app, auth, provider;
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      provider = new GoogleAuthProvider();
+      log("Firebase initialized successfully. Ready to test.");
+    } catch(e) {
+      log("INIT ERROR: " + e.message);
+    }
+
+    document.getElementById('btnPopup').onclick = async () => {
+      log("Starting signInWithPopup...");
+      try {
+        const result = await signInWithPopup(auth, provider);
+        log(`SUCCESS! Logged in as: ${result.user.email}`);
+      } catch (error) {
+        log(`POPUP ERROR: Code: ${error.code} | Message: ${error.message}`);
+      }
+    };
+
+    document.getElementById('btnRedirect').onclick = async () => {
+      log("Starting signInWithRedirect... You will leave this page.");
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (error) {
+        log(`REDIRECT ERROR: Code: ${error.code} | Message: ${error.message}`);
+      }
+    };
+
+    document.getElementById('btnCheck').onclick = async () => {
+      log("Checking getRedirectResult()...");
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          log(`SUCCESS! Redirect login worked. User: ${result.user.email}`);
+        } else {
+          log(`No redirect result found (User hasn't logged in yet).`);
+        }
+      } catch (error) {
+        log(`GET_RESULT ERROR: Code: ${error.code} | Message: ${error.message}`);
+      }
+    };
+    
+    // Automatically check on load
+    document.getElementById('btnCheck').click();
+  </script>
+</body>
+</html>
