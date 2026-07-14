@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   console.log('[BACKEND TRACE] GEMINI_API_KEY loaded in environment:', !!apiKey);
   
   if (!apiKey) {
@@ -27,6 +27,10 @@ export default async function handler(req, res) {
       code: 'API_KEY_MISSING' 
     });
   }
+  
+  // Strip any accidental spaces
+  apiKey = apiKey.trim();
+  console.log(`[BACKEND TRACE] API Key Prefix: ${apiKey.substring(0, 5)}...`);
 
   try {
     const { prompt, history = [], attachments = [] } = req.body;
