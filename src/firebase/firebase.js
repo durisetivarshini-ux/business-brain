@@ -24,6 +24,7 @@ try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: "select_account" });
   db = getFirestore(app);
 } catch (error) {
   console.error("Firebase Initialization Error:", error);
