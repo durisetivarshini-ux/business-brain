@@ -46,12 +46,9 @@ export function AuthProvider({ children }) {
       if (db) {
         console.log("AuthContext: Updating lastLogin in Firestore...");
         try {
-          await Promise.race([
-            setDoc(doc(db, "users", userCredential.user.uid), {
-              lastLogin: serverTimestamp()
-            }, { merge: true }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore database connection timed out. Has it been provisioned?")), 5000))
-          ]);
+          await setDoc(doc(db, "users", userCredential.user.uid), {
+            lastLogin: serverTimestamp()
+          }, { merge: true });
           console.log("AuthContext: Firestore update succeeded");
         } catch (err) {
           console.error("AuthContext: Failed to update last login:", err.message);
@@ -111,11 +108,7 @@ export function AuthProvider({ children }) {
         console.log("AuthContext: Checking Firestore for existing Google user...");
         try {
           const userRef = doc(db, "users", userCredential.user.uid);
-          // Add a timeout to getDoc so it doesn't hang forever
-          const userSnap = await Promise.race([
-            getDoc(userRef),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore database connection timed out. Has it been provisioned?")), 5000))
-          ]);
+          const userSnap = await getDoc(userRef);
           
           if (!userSnap.exists()) {
             console.log("AuthContext: Creating new user document in Firestore");
