@@ -10,7 +10,27 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+let app;
+let auth;
+let googleProvider;
 
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+try {
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+  } else {
+    console.error("CRITICAL ERROR: Firebase Environment Variables are missing! Please add VITE_FIREBASE_API_KEY etc. to your Vercel Project Settings -> Environment Variables.");
+    // Mock to prevent immediate destructuring crashes
+    auth = { 
+      currentUser: null, 
+      onAuthStateChanged: (cb) => { cb(null); return () => {}; },
+      signOut: async () => {}
+    };
+    googleProvider = {};
+  }
+} catch (error) {
+  console.error("Firebase initialization failed:", error);
+}
+
+export { auth, googleProvider };
