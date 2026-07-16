@@ -133,138 +133,122 @@ I am your intelligent Business Operating System Copilot. I can analyze company d
 }
 
 export default async function handler(req, res) {
-  console.log('[BACKEND TRACE] Request received at /api/chat');
-  
+  const startTime = Date.now();
+  const requestId = `req-${Math.floor(100000 + Math.random() * 900000)}`;
+  console.log(`[${requestId}] AI Request Received`);
+
   if (req.method !== 'POST') {
-    console.log('[BACKEND TRACE] Invalid method:', req.method);
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    console.log(`[${requestId}] Invalid method: ${req.method}`);
+    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
-
-  let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-  console.log('[BACKEND TRACE] GEMINI_API_KEY loaded in environment:', !!apiKey);
-  
-  if (!apiKey) {
-    console.warn('[BACKEND WARNING] GEMINI_API_KEY is missing. Falling back to local Adaptive AI Router...');
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
-    const reply = getLocalAIReply(req.body.prompt);
-    
-    // Stream response chunk by chunk
-    for (let i = 0; i < reply.length; i += 20) {
-      res.write(reply.substring(i, i + 20));
-      await new Promise(r => setTimeout(r, 20));
-    }
-    res.end();
-    return;
-  }
-  
-  // Strip any accidental spaces
-  apiKey = apiKey.trim();
-  console.log(`[BACKEND TRACE] API Key Prefix: ${apiKey.substring(0, 5)}...`);
 
   try {
-    const { prompt, history = [], attachments = [] } = req.body;
-    console.log(`[BACKEND TRACE] Payload received. Prompt length: ${prompt?.length || 0}, History length: ${history?.length || 0}, Attachments: ${attachments?.length || 0}`);
-    
-    if (!prompt && attachments.length === 0) {
-      console.log('[BACKEND TRACE] Missing prompt and attachments');
-      return res.status(400).json({ error: 'Prompt or attachments are required' });
+    console.log(`[${requestId}] Checking Environment...`);
+    let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn(`[${requestId}] GEMINI_API_KEY is missing on the server.`);
+      return res.status(200).json({
+        success: false,
+        message: 'AI service is temporarily unavailable. Please contact your administrator or configure the AI service.'
+      });
+    }
+    apiKey = apiKey.trim();
+    console.log(`[${requestId}] Environment Loaded`);
+
+    // 1. Input Validation (Step 7)
+    const { message, prompt, history = [], context = {} } = req.body;
+    const rawMessage = message || prompt;
+
+    if (rawMessage === undefined || rawMessage === null) {
+      return res.status(400).json({ success: false, message: 'message or prompt is required' });
+    }
+    if (typeof rawMessage !== 'string') {
+      return res.status(400).json({ success: false, message: 'message must be a string' });
+    }
+    const cleanMessage = rawMessage.trim().replace(/<[^>]*>/g, '');
+    if (cleanMessage.length === 0) {
+      return res.status(400).json({ success: false, message: 'message cannot be empty' });
     }
 
-    console.log('[BACKEND TRACE] Initializing GoogleGenerativeAI client...');
-    console.log("API Key Exists:", !!apiKey);
+    // 2. Build Context Prefix (Step 9)
+    const company = context.companyName || 'Business Brain Enterprise';
+    const industry = context.customIndustry || 'Enterprise';
+    const stage = context.businessStage || 'Growing';
+    const systemInstruction = `${SYSTEM_PROMPT}\n\nUser Context:\n- Company: ${company}\n- Industry: ${industry}\n- Stage: ${stage}\n\nResponse must ALWAYS be clean JSON: { "success": true, "reply": "markdown_text" }. Never return raw text. Never expose stack traces or API keys.`;
+
+    // 3. Initialize Gemini (Step 3)
+    console.log(`[${requestId}] Gemini client initialization started.`);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = "gemini-2.0-flash";
-    console.log("Model:", modelName);
-    console.log("SDK Version Loaded: @google/generative-ai (see package.json)");
     
-    const model = genAI.getGenerativeModel({ model: modelName });
-    console.log(`[BACKEND TRACE] Gemini client initialized successfully with model ${modelName}.`);
+    // Choose model with fallback
+    let modelName = 'gemini-2.5-flash';
+    let model;
+    try {
+      console.log(`[${requestId}] Selecting model: ${modelName}`);
+      model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+      console.log(`[${requestId}] Model Selected`);
+    } catch (modelErr) {
+      console.warn(`[${requestId}] gemini-2.5-flash failed to initialize. Falling back to gemini-2.5-pro...`);
+      modelName = 'gemini-2.5-pro';
+      model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+      console.log(`[${requestId}] Fallback Model Selected: ${modelName}`);
+    }
+    console.log(`[${requestId}] Gemini Client Initialized`);
 
-    // Format history for Gemini
+    // 4. Chat session history formatting (Step 10)
     const formattedHistory = [
-      {
-        role: 'user',
-        parts: [{ text: SYSTEM_PROMPT }]
-      },
-      {
-        role: 'model',
-        parts: [{ text: 'System initialized. I am Business Brain. How may I assist you today?' }]
-      }
+      { role: 'user', parts: [{ text: systemInstruction }] },
+      { role: 'model', parts: [{ text: 'Understood. I am Business Brain AI. Context loaded successfully.' }] }
     ];
-
-    history.forEach(msg => {
-      if (msg.type !== 'setup' && msg.type !== 'error') {
+    history.forEach(h => {
+      if (h.content && h.role) {
         formattedHistory.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content || ' ' }]
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content }]
         });
       }
     });
 
-    console.log('[BACKEND TRACE] Starting chat session with formatted history...');
-    const chat = model.startChat({ history: formattedHistory });
+    // 5. Send Prompt with 3x retry and backoff (Step 12)
+    console.log(`[${requestId}] Sending Prompt`);
+    let replyText = '';
+    let success = false;
+    let attempts = 3;
+    let delay = 800;
 
-    const parts = [];
-    if (prompt) {
-      parts.push({ text: prompt });
-    } else {
-      parts.push({ text: 'Analyze the attached files.' });
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        console.log(`[${requestId}] Waiting Response (Attempt ${attempt}/${attempts})...`);
+        const chat = model.startChat({ history: formattedHistory });
+        const result = await chat.sendMessage(cleanMessage);
+        replyText = result.response.text();
+        success = true;
+        console.log(`[${requestId}] Response Received`);
+        break;
+      } catch (geminiErr) {
+        console.error(`[${requestId}] Attempt ${attempt} failed:`, geminiErr.message);
+        if (attempt === attempts) {
+          throw geminiErr;
+        }
+        await new Promise(r => setTimeout(r, delay * Math.pow(2, attempt)));
+      }
     }
 
-    if (attachments && attachments.length > 0) {
-      attachments.forEach(file => {
-        parts.push({
-          inlineData: {
-            data: file.inlineData.data,
-            mimeType: file.type
-          }
-        });
-      });
-    }
+    // 6. Format and Send Response (Step 8)
+    console.log(`[${requestId}] Formatting Response`);
+    const executionTime = Date.now() - startTime;
+    console.log(`[${requestId}] Sending Response. Execution time: ${executionTime}ms`);
+    return res.json({ success: true, reply: replyText });
 
-    console.log('[BACKEND TRACE] Sending message stream to Gemini...');
-    const result = await chat.sendMessageStream(parts);
-    console.log('[BACKEND TRACE] Stream established successfully. Sending response to client.');
-    
-    // Set headers for Server-Sent Events / Chunked transfer
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      res.write(chunkText);
-    }
-    
-    console.log('[BACKEND TRACE] Stream completed successfully.');
-    res.end();
   } catch (error) {
-    console.error('[BACKEND ERROR] Full Gemini Error. Falling back to local Adaptive AI Router...');
+    const executionTime = Date.now() - startTime;
+    console.error(`[BACKEND ERROR] Request ${requestId} failed. Time: ${executionTime}ms. Error details:`);
     console.error(error.stack || error);
     
-    try {
-      if (!res.headersSent) {
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Transfer-Encoding', 'chunked');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-      }
-      const reply = getLocalAIReply(req.body.prompt);
-      for (let i = 0; i < reply.length; i += 20) {
-        res.write(reply.substring(i, i + 20));
-        await new Promise(r => setTimeout(r, 20));
-      }
-      res.end();
-    } catch (streamErr) {
-      console.error('[BACKEND FATAL] Streaming fallback failed:', streamErr);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'AI Service temporarily unavailable. Please retry.' });
-      }
-    }
+    // Safety Fallback: Return clean JSON instead of crashing / 502 (Step 5)
+    return res.status(200).json({
+      success: false,
+      message: 'AI service is temporarily unavailable. Please try again.'
+    });
   }
 }

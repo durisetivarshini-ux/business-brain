@@ -345,80 +345,115 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.post('/api/ai/chat', async (req, res) => {
-  const { message, prompt, history = [], attachments = [] } = req.body;
-  const userMessage = message || prompt;
+  const startTime = Date.now();
+  const requestId = `req-${Math.floor(100000 + Math.random() * 900000)}`;
+  console.log(`[${requestId}] AI Request Received`);
 
-  if (!userMessage) {
-    return res.status(400).json({ error: 'Message or prompt is required' });
-  }
-
-  // If the request expects JSON response (has "message" key)
-  if (message) {
-    try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({
-          error: 'AI service is temporarily unavailable. Please contact your administrator or configure the AI service.',
-          code: 'API_KEY_MISSING'
-        });
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const result = await model.generateContent(message);
-      const replyText = result.response.text();
-      return res.json({ success: true, reply: replyText });
-    } catch (err) {
-      console.error('[AI CHAT ERROR]', err);
-      const replyText = getLocalAIReply(message);
-      return res.json({ success: true, reply: replyText });
-    }
-  }
-
-  // Otherwise, default to standard streaming logic
   try {
+    console.log(`[${requestId}] Checking Environment...`);
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      const reply = getLocalAIReply(prompt);
-      res.write(reply);
-      res.end();
-      return;
+      console.warn(`[${requestId}] GEMINI_API_KEY is missing on the server.`);
+      return res.status(200).json({
+        success: false,
+        message: 'AI service is temporarily unavailable. Please contact your administrator or configure the AI service.'
+      });
+    }
+    console.log(`[${requestId}] Environment Loaded`);
+
+    // 1. Validate Input Payload (Step 7)
+    const { message, history = [], context = {} } = req.body;
+    if (message === undefined || message === null) {
+      return res.status(400).json({ success: false, message: 'message parameter is required' });
+    }
+    if (typeof message !== 'string') {
+      return res.status(400).json({ success: false, message: 'message must be a string' });
+    }
+    const cleanMessage = message.trim().replace(/<[^>]*>/g, ''); // Basic input sanitization
+    if (cleanMessage.length === 0) {
+      return res.status(400).json({ success: false, message: 'message cannot be empty' });
     }
 
+    // 2. Build Context Prefix (Step 9)
+    const company = context.companyName || 'Business Brain Enterprise';
+    const industry = context.customIndustry || 'Enterprise';
+    const stage = context.businessStage || 'Growing';
+    const systemInstruction = `${SYSTEM_PROMPT}\n\nUser Context:\n- Company: ${company}\n- Industry: ${industry}\n- Stage: ${stage}\n\nResponse must ALWAYS be clean JSON: { "success": true, "reply": "markdown_text" }. Never return raw text. Never expose stack traces or API keys.`;
+
+    // 3. Initialize Gemini (Step 3)
+    console.log(`[${requestId}] Gemini client initialization started.`);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const chat = model.startChat({
-      history: history.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content || ' ' }]
-      }))
+    
+    // Choose model with fallback
+    let modelName = 'gemini-2.5-flash';
+    let model;
+    try {
+      console.log(`[${requestId}] Selecting model: ${modelName}`);
+      model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+      console.log(`[${requestId}] Model Selected`);
+    } catch (modelErr) {
+      console.warn(`[${requestId}] gemini-2.5-flash failed to initialize. Falling back to gemini-2.5-pro...`);
+      modelName = 'gemini-2.5-pro';
+      model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+      console.log(`[${requestId}] Fallback Model Selected: ${modelName}`);
+    }
+    console.log(`[${requestId}] Gemini Client Initialized`);
+
+    // 4. Chat session history formatting (Step 10)
+    const formattedHistory = [
+      { role: 'user', parts: [{ text: systemInstruction }] },
+      { role: 'model', parts: [{ text: 'Understood. I am Business Brain AI. Context loaded successfully.' }] }
+    ];
+    history.forEach(h => {
+      if (h.content && h.role) {
+        formattedHistory.push({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content }]
+        });
+      }
     });
 
-    const result = await chat.sendMessageStream(prompt);
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    // 5. Send Prompt with 3x retry and backoff (Step 12)
+    console.log(`[${requestId}] Sending Prompt`);
+    let replyText = '';
+    let success = false;
+    let attempts = 3;
+    let delay = 800;
 
-    for await (const chunk of result.stream) {
-      res.write(chunk.text());
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        console.log(`[${requestId}] Waiting Response (Attempt ${attempt}/${attempts})...`);
+        const chat = model.startChat({ history: formattedHistory });
+        const result = await chat.sendMessage(cleanMessage);
+        replyText = result.response.text();
+        success = true;
+        console.log(`[${requestId}] Response Received`);
+        break;
+      } catch (geminiErr) {
+        console.error(`[${requestId}] Attempt ${attempt} failed:`, geminiErr.message);
+        if (attempt === attempts) {
+          throw geminiErr;
+        }
+        await new Promise(r => setTimeout(r, delay * Math.pow(2, attempt)));
+      }
     }
-    res.end();
+
+    // 6. Format and Send Response (Step 8)
+    console.log(`[${requestId}] Formatting Response`);
+    const executionTime = Date.now() - startTime;
+    console.log(`[${requestId}] Sending Response. Execution time: ${executionTime}ms`);
+    return res.json({ success: true, reply: replyText });
+
   } catch (error) {
-    console.error('[CHAT STREAM ERROR]', error);
-    if (!res.headersSent) {
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Transfer-Encoding', 'chunked');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-    }
-    const reply = getLocalAIReply(prompt);
-    for (let i = 0; i < reply.length; i += 20) {
-      res.write(reply.substring(i, i + 20));
-      await new Promise(r => setTimeout(r, 20));
-    }
-    res.end();
+    const executionTime = Date.now() - startTime;
+    console.error(`[BACKEND ERROR] Request ${requestId} failed. Time: ${executionTime}ms. Error details:`);
+    console.error(error.stack || error);
+    
+    // Safety Fallback: Return clean error JSON instead of HTTP 502/crashes (Step 5)
+    return res.status(200).json({
+      success: false,
+      message: 'AI service is temporarily unavailable. Please try again.'
+    });
   }
 });
 
