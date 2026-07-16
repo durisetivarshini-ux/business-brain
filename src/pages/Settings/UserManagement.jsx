@@ -15,6 +15,7 @@ export function UserManagement() {
   ]);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [isInviting, setIsInviting] = useState(false);
   const [openActionId, setOpenActionId] = useState(null);
 
@@ -30,16 +31,26 @@ export function UserManagement() {
   }, []);
 
   const filteredUsers = useMemo(() => {
-
-    if (!searchQuery) return users;
-    const q = searchQuery.toLowerCase();
-    return users.filter(u => 
-      u.name.toLowerCase().includes(q) || 
-      u.email.toLowerCase().includes(q) || 
-      u.dept.toLowerCase().includes(q) ||
-      u.role.toLowerCase().includes(q)
-    );
-  }, [users, searchQuery]);
+    let result = users;
+    
+    // Status Filter
+    if (statusFilter !== "All") {
+      result = result.filter(u => u.status === statusFilter);
+    }
+    
+    // Search Query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(u => 
+        u.name.toLowerCase().includes(q) || 
+        u.email.toLowerCase().includes(q) || 
+        u.dept.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q)
+      );
+    }
+    
+    return result;
+  }, [users, searchQuery, statusFilter]);
 
   const handleInvite = () => {
     setIsInviting(true);
@@ -76,12 +87,19 @@ export function UserManagement() {
 
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <button 
-            onClick={() => toast('Advanced filtering coming soon.', { icon: '🔍' })}
-            className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-bold flex items-center gap-2 hover:bg-white/10 transition-colors"
-          >
-            <Filter size={14} /> Filter
-          </button>
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="appearance-none bg-[#050816] border border-white/10 rounded-lg py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:border-[#5B5FFF] font-bold cursor-pointer"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Pending">Pending</option>
+            </select>
+            <Filter size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+          </div>
           <button 
             onClick={handleInvite}
             disabled={isInviting}
