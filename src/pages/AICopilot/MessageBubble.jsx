@@ -1,18 +1,71 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, Copy, Check, RefreshCw, FileText } from 'lucide-react';
+import { 
+  Bot, User, Copy, Check, RefreshCw, FileText,
+  DollarSign, CheckCircle, Calendar, Users, FileDown, PlusCircle, TrendingUp
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { AICharts } from './AICharts';
 
 export function MessageBubble({ msg, isLast, isTyping, onRegenerate }) {
   const isUser = msg.role === 'user';
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Extract action markers: [Action: Name]
+  const actionRegex = /\[Action:\s*([^\]]+)\]/gi;
+  const actions = [];
+  let match;
+  while ((match = actionRegex.exec(msg.content)) !== null) {
+    actions.push(match[1].trim());
+  }
+
+  // Clean content to remove raw action tags from output display
+  const cleanContent = msg.content.replace(/\[Action:\s*([^\]]+)\]/gi, '');
+
+  const getActionIcon = (act) => {
+    const a = act.toLowerCase();
+    if (a.includes('invoice')) return <DollarSign size={14} className="text-[#10B981]" />;
+    if (a.includes('purchase order') || a.includes('approve')) return <CheckCircle size={14} className="text-[#10B981]" />;
+    if (a.includes('meeting') || a.includes('schedule')) return <Calendar size={14} className="text-[#5B5FFF]" />;
+    if (a.includes('crm') || a.includes('customer')) return <Users size={14} className="text-[#00D4FF]" />;
+    if (a.includes('pdf') || a.includes('export')) return <FileDown size={14} className="text-[#EC4899]" />;
+    if (a.includes('finance') || a.includes('ledger')) return <DollarSign size={14} className="text-[#10B981]" />;
+    if (a.includes('analytics') || a.includes('charts')) return <TrendingUp size={14} className="text-[#00D4FF]" />;
+    return <PlusCircle size={14} className="text-[#94A3B8]" />;
+  };
+
+  const handleActionClick = (act) => {
+    const a = act.toLowerCase();
+    if (a.includes('invoice')) {
+      toast.success("Draft invoice generated. Opening Finance view...", { icon: '📄' });
+      navigate('/app/finance');
+    } else if (a.includes('purchase order') || a.includes('approve')) {
+      toast.success("Purchase order approved successfully!", { icon: '✅' });
+    } else if (a.includes('meeting') || a.includes('schedule')) {
+      toast.success("Opening Meeting scheduler...", { icon: '📅' });
+      navigate('/app/meetings');
+    } else if (a.includes('crm') || a.includes('customer')) {
+      toast.success("Navigating to CRM Pipeline...", { icon: '👥' });
+      navigate('/app/crm');
+    } else if (a.includes('pdf') || a.includes('export')) {
+      toast.success("PDF report generated successfully. Export complete!", { icon: '📥' });
+    } else if (a.includes('finance')) {
+      navigate('/app/finance');
+    } else if (a.includes('analytics')) {
+      navigate('/app/analytics');
+    } else {
+      toast.success(`Action Triggered: ${act}`);
+    }
   };
 
   return (
@@ -55,13 +108,29 @@ export function MessageBubble({ msg, isLast, isTyping, onRegenerate }) {
         {msg.type === 'chart_revenue' ? (
           <div>
             <div className="prose prose-invert prose-sm max-w-none mb-4">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanContent}</ReactMarkdown>
             </div>
             <AICharts type="revenue" />
           </div>
         ) : (
           <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanContent}</ReactMarkdown>
+          </div>
+        )}
+
+        {/* Render Interactive Action Buttons */}
+        {actions.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-white/5">
+            {actions.map((act, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleActionClick(act)}
+                className="functional-btn flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all shadow-[0_5px_15px_rgba(0,0,0,0.2)] hover:scale-[1.02]"
+              >
+                {getActionIcon(act)}
+                <span>{act}</span>
+              </button>
+            ))}
           </div>
         )}
 

@@ -260,6 +260,7 @@ export function CopilotPage() {
   const [chatKey, setChatKey] = useState(0);
   const [showSavedPrompts, setShowSavedPrompts] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [thinkingLabel, setThinkingLabel] = useState("");
   
   // Advanced Chat State
   const [chatHistory, setChatHistory] = useState(() => {
@@ -374,6 +375,28 @@ export function CopilotPage() {
     setInputValue('');
     setAttachments([]);
 
+    // Determine thinking label based on query keywords
+    const p = msg.toLowerCase();
+    if (p.includes('revenue') || p.includes('sales') || p.includes('finance') || p.includes('invoice') || p.includes('billing')) {
+      setThinkingLabel("Checking Finance ledger & forecasting Q3...");
+    } else if (p.includes('crm') || p.includes('customer') || p.includes('client') || p.includes('lead')) {
+      setThinkingLabel("Reading CRM customer pipeline telemetry...");
+    } else if (p.includes('inventory') || p.includes('stock')) {
+      setThinkingLabel("Reviewing Inventory stock buffers...");
+    } else if (p.includes('marketing') || p.includes('campaign') || p.includes('ads')) {
+      setThinkingLabel("Auditing Marketing campaigns conversions...");
+    } else if (p.includes('employee') || p.includes('hrms') || p.includes('hr') || p.includes('staff')) {
+      setThinkingLabel("Synthesizing HR workforce sentiment...");
+    } else if (p.includes('document') || p.includes('ocr') || p.includes('pdf')) {
+      setThinkingLabel("Analyzing document layout & compliance...");
+    } else if (p.includes('automation') || p.includes('workflow')) {
+      setThinkingLabel("Reading automation graph schema...");
+    } else if (p.includes('meeting') || p.includes('schedule') || p.includes('calendar')) {
+      setThinkingLabel("Querying team availability calendar...");
+    } else {
+      setThinkingLabel("Synthesizing enterprise operating context...");
+    }
+
     const newMessages = [...messages, { 
       role: 'user', 
       content: msg, 
@@ -393,6 +416,7 @@ export function CopilotPage() {
 
       let fullContent = '';
       for await (const chunk of stream) {
+        setThinkingLabel(""); // Clear thinking indicator on first chunk
         fullContent += chunk.text();
         setMessages(prev => prev.map(m => 
           m.id === aiMessageId ? { ...m, content: fullContent } : m
@@ -404,16 +428,17 @@ export function CopilotPage() {
       if (error.name === 'AbortError') return; // User stopped it
       
       console.error('Gemini API Error:', error);
-      let errorMsg = `**Error communicating with AI:**\n\nWe encountered an issue processing your request:\n\n\`\`\`text\n${error.message}\n\`\`\`\n\n*If you see a 404 error here, it means the Google account you used to generate the API key is restricted from accessing the Gemini model.*`;
+      let errorMsg = `**Error communicating with AI:**\n\nWe encountered an issue processing your request:\n\n\`\`\`text\n${error.message}\n\`\`\`\n\n*Please ensure that your Gemini API key is configured correctly in the backend environment.*`;
       
       setMessages(prev => {
         const withoutLast = prev.slice(0, -1);
         return [...withoutLast, {
           role: 'assistant',
           type: 'markdown',
-          content: errorMsg
+          content: error.message || "I couldn't reach the AI service. Please try again."
         }];
       });
+      setThinkingLabel("");
       setIsTyping(false);
       abortControllerRef.current = null;
     }
@@ -569,7 +594,17 @@ export function CopilotPage() {
                       />
                     ))}
                   </AnimatePresence>
-                  {isTyping && <TypingAnimation />}
+                  {isTyping && (
+                    <div className="flex flex-col gap-2 items-start">
+                      {thinkingLabel && (
+                        <div className="flex items-center gap-3 text-xs font-bold text-[#94A3B8] px-4 py-2.5 bg-white/5 rounded-xl border border-white/5 self-start max-w-xs animate-pulse">
+                          <Sparkles size={14} className="text-[#5B5FFF] animate-spin" />
+                          <span>{thinkingLabel}</span>
+                        </div>
+                      )}
+                      <TypingAnimation />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

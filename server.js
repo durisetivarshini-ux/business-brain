@@ -11,8 +11,7 @@ import { fileURLToPath } from 'url';
 dotenv.config();
 
 if (!process.env.GEMINI_API_KEY) {
-  console.error("❌ GEMINI_API_KEY is missing");
-  process.exit(1);
+  console.warn("⚠️ GEMINI_API_KEY is missing. AI features will fallback to user-friendly error messages.");
 }
 
 console.log("✓ Environment Loaded");
@@ -116,169 +115,139 @@ app.post('/api/auth/google', async (req, res) => {
   res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl } });
 });
 
-function getLocalAIReply(prompt = "") {
-  const p = prompt.toLowerCase();
-  
-  if (p.includes('revenue') || p.includes('sales') || p.includes('predict') || p.includes('forecast')) {
-    return `### 📊 AI Revenue Forecast & Sales Trend
+function getSystemInstruction(context = {}) {
+  const company = context.companyName || 'Business Brain Enterprise';
+  const industry = context.customIndustry || 'Enterprise Software';
+  const stage = context.businessStage || 'Growing';
+  const businessType = context.businessType || 'Private Corporation';
+  const employeeCount = context.employeeCount || '26-50 Employees';
+  const annualRevenue = context.annualRevenue || 'Under ₹10 Lakhs';
+  const activeModule = context.activeModule || 'General';
 
-Based on current operational telemetry, here is the simulated outlook for **Q3 Performance**:
-
-| Month | Target Revenue | Forecasted Revenue | Status |
-| :--- | :--- | :--- | :--- |
-| **July** | ₹12.5 Lakhs | **₹14.2 Lakhs** | 📈 +13.6% ahead |
-| **August** | ₹15.0 Lakhs | **₹16.8 Lakhs** | 📈 +12.0% ahead |
-| **September** | ₹18.0 Lakhs | **₹21.5 Lakhs** | 📈 +19.4% ahead |
-
-#### Key Insights:
-- **Growth Velocity**: Overall Sales metrics show a **+14.2% expansion** driven by new customer registrations.
-- **AI Recommendation**: Shift advertising budgets towards LinkedIn marketing campaigns to sustain lead pipeline velocity.`;
-  }
-  
-  if (p.includes('invoice') || p.includes('billing')) {
-    return `### 📄 Finance Action: Creating Invoice
-
-I have identified the intent to create a new customer invoice:
-- **Customer**: Acme Corp (Enterprise Segment)
-- **Amount**: ₹12,500
-- **Format Standard**: INV-2026-0412
-- **Action**: Creating a draft ledger entry and redirecting the viewport...
-
-**Status**: Invoice created successfully! You can review details on the [Finance Ledger](/app/finance) page.`;
-  }
-
-  if (p.includes('marketing') || p.includes('campaign')) {
-    return `### 🚀 Marketing Campaign Blueprint
-
-AI Campaign Optimizer recommendations:
-1. **Focus Channel**: LinkedIn & Google Search.
-2. **Target Audience**: B2B Decision Makers (IT Directors / Managers).
-3. **Ad Budget**: ₹45,000 allocation recommended.
-4. **Copy Strategy**: *"Orchestrate your workspace using AI-powered Business Operating Systems."*
-
-*Campaign draft successfully populated! Ready to launch on the [Marketing Campaign Panel](/app/marketing).*`;
-  }
-
-  if (p.includes('expense') || p.includes('cost')) {
-    return `### 📉 Financial Expense & Cost Audit
-
-Operational costs analysis:
-- **Infrastructure**: AWS Cloud cluster is running at 42% CPU load. Recommend downsizing database sync clusters to save **$240/mo**.
-- **Procurement**: Supplier price adjustments detected for key ingredient lines.
-- **Recommended Action**: Initiate automation trigger to audit vendors contracts.`;
+  let moduleInstruction = "";
+  switch (activeModule) {
+    case 'Finance':
+      moduleInstruction = "You are a world-class CFO (Chief Financial Officer) and Senior Investment Analyst. Answer financial and billing questions with meticulous mathematical rigor. Use tables, ratios, and risk mitigation strategies. Recommend action links where applicable.";
+      break;
+    case 'CRM':
+      moduleInstruction = "You are a top-performing Chief Revenue Officer (CRO) and Sales Director. Answer CRM, lead conversion, pipeline, and account manager questions. Provide actionable sales advice and customer engagement blueprints.";
+      break;
+    case 'HR':
+      moduleInstruction = "You are an expert CHRO (Chief Human Resources Officer) and workforce consultant. Answer recruitment, retention, performance review, payroll, and employee relations questions professionally and supportively.";
+      break;
+    case 'Inventory':
+    case 'ERP':
+      moduleInstruction = "You are a veteran Supply Chain Director and ERP Logistics Architect. Focus on supply velocity, reorder thresholds, vendor fulfillment latency, and stock capacity audits.";
+      break;
+    case 'Marketing':
+      moduleInstruction = "You are a world-class CMO (Chief Marketing Officer) and brand strategist. Analyze ad campaign conversion funnels, brand messaging resonance, budget allocations, and organic search strategies.";
+      break;
+    case 'Documents':
+      moduleInstruction = "You are a Senior Document Auditor and AI OCR Analyst. Summarize document structures, find regulatory compliance clauses, highlight key deadlines, and extract metadata fields.";
+      break;
+    case 'Analytics':
+      moduleInstruction = "You are a Principal BI Analyst and Data Scientist. Recommend metrics models, interpret dashboard trendlines, forecast future target values, and suggest KPI dashboard optimizations.";
+      break;
+    case 'Automation':
+      moduleInstruction = "You are a Lead Workflow Automation Architect. Help construct triggers, sequential actions, webhook integrations, and automated pipeline rules.";
+      break;
+    case 'Meetings':
+      moduleInstruction = "You are an Executive Assistant and Meeting coordinator. Help schedule, draft sync agendas, organize attendees list, and track action items.";
+      break;
+    case 'Goals':
+    case 'Risks':
+    case 'Executive':
+      moduleInstruction = "You are an elite Management Consultant and Enterprise Risk Architect. Focus on OKRs, risk matrices, mitigation plans, and board-level reporting structures.";
+      break;
+    default:
+      moduleInstruction = "You are an elite executive strategy consultant. Provide broad-spectrum operational, financial, and strategic advice.";
   }
 
-  if (p.includes('employee') || p.includes('hr') || p.includes('staff')) {
-    return `### 👥 HRMS Staff Directory & Attrition Review
+  return `${SYSTEM_PROMPT}
 
-Current workforce health overview:
-- **Active Team Size**: 18 Developers engaged.
-- **Attrition Risk**: **Low (94% satisfaction rating)**.
-- **Action Items**: 4 performance review schedules pending for next week.
-- **Workforce Summary**: Staging pipeline is clear. All teams operating at optimal velocity.`;
+Active Business Context:
+- Company: ${company} (${businessType})
+- Industry Segment: ${industry}
+- Stage of Business: ${stage}
+- Team Size: ${employeeCount}
+- Estimated Revenue Range: ${annualRevenue}
+
+Target Workspace Module Context:
+- Active Module: ${activeModule}
+- Adaptive Mode: ${moduleInstruction}
+
+CRITICAL ACTION LINK INJECTORS:
+If your response mentions any of the following operational flows, you MUST append the exact markdown action link tag on its own line:
+- Creating an invoice: [Action: Create Invoice]
+- Approving a Purchase Order: [Action: Approve Purchase Order]
+- Scheduling a Meeting: [Action: Schedule Meeting]
+- Opening the CRM view: [Action: Open CRM]
+- Exporting details to a PDF: [Action: Generate PDF]
+- Opening the Finance Ledger: [Action: Open Finance]
+- Opening the BI Analytics Dashboard: [Action: Open Analytics]`;
+}
+
+async function startGeminiStreamWithRetry(genAI, systemInstruction, history, parts) {
+  const modelsToTry = [
+    { name: 'gemini-2.5-flash', attemptCount: 2 },
+    { name: 'gemini-2.5-pro', attemptCount: 1 }
+  ];
+
+  let lastError = null;
+
+  for (const modelConfig of modelsToTry) {
+    for (let attempt = 1; attempt <= modelConfig.attemptCount; attempt++) {
+      try {
+        console.log(`[GEMINI RETRY TRACE] Trying model ${modelConfig.name} (Attempt ${attempt}/${modelConfig.attemptCount})`);
+        const model = genAI.getGenerativeModel({ 
+          model: modelConfig.name,
+          systemInstruction: systemInstruction
+        });
+
+        // Start chat session
+        const chat = model.startChat({ history: history });
+        const result = await chat.sendMessageStream(parts);
+        return result;
+      } catch (err) {
+        console.error(`[GEMINI RETRY WARNING] Failed with ${modelConfig.name} on attempt ${attempt}:`, err.message);
+        lastError = err;
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
   }
 
-  if (p.includes('inventory') || p.includes('stock')) {
-    return `### 📦 AI Inventory Optimizer
-
-Current inventory threshold alerts:
-- **Critical Alert**: Veg Supreme ingredients stock is under 15% capacity (estimated **3 days remaining**).
-- **Auto-Reorder Point**: Triggering purchase orders to suppliers roster.
-- **Action Status**: Suppliers notified. Delivery scheduled for Friday.`;
-  }
-
-  if (p.includes('meeting') || p.includes('schedule')) {
-    return `### 📅 Meeting Scheduled
-
-Meeting AI scheduler actions executed:
-- **Agenda**: Q3 Dev Sprint Planning & QA Sync.
-- **Duration**: 45 mins.
-- **Attendees**: 8 engineering team members.
-- **Action**: Scheduled in calendar, sent calendar invites, and updated transcript registry.`;
-  }
-
-  if (p.includes('automation') || p.includes('workflow')) {
-    return `### ⚙️ Automation Canvas Workflow Activated
-
-New workflow created successfully:
-1. **Trigger**: New CRM Client Registration.
-2. **Action 1**: Create CRM contact record.
-3. **Action 2**: Issue welcome onboarding email templates.
-4. **Action 3**: Notify assigned Account Manager.
-
-*Workflow layout populated on the [Automation Studio](/app/automation).*`;
-  }
-
-  if (p.includes('risk') || p.includes('security')) {
-    return `### ⚠️ Operational Risk Audit
-
-Platform Risk Center telemetry scan results:
-- **Cash Flow Risk**: Low (Outstanding receivables under ₹50,000).
-- **Inventory Risk**: High (Reorder triggers active).
-- **Cybersecurity**: No staging cluster breaches detected. All systems nominal.`;
-  }
-
-  if (p.includes('document') || p.includes('ocr')) {
-    return `### 📑 Document Vault Summarization
-
-AI OCR Scan of \`Board_Meeting_Minutes.pdf\`:
-- **Summary**: Board approved the Q3 revenue target shift.
-- **Security Rating**: Confidential.
-- **Suggested Next Step**: Assign tasks to sales reps in CRM.`;
-  }
-
-  return `### 🤖 Business Brain AI Copilot
-
-I am your intelligent Business Operating System Copilot. I can analyze company data, forecast revenue, draft invoices, schedule meetings, or activate automated workflows.
-
-**Suggested Queries to Try:**
-- *Show last month's revenue*
-- *Create a draft invoice for Acme Corp*
-- *Audit current infrastructure expenses*
-- *Forecast critical inventory thresholds*
-- *Schedule a team sync meeting*`;
+  throw lastError || new Error("All Gemini models and retry attempts exhausted.");
 }
 
 app.post('/api/chat', async (req, res) => {
-  console.log('[BACKEND TRACE] Request received at local /api/chat');
+  console.log('[BACKEND TRACE] Streaming request received at /api/chat');
   
   const apiKey = process.env.GEMINI_API_KEY;
-  console.log('[BACKEND TRACE] GEMINI_API_KEY loaded in environment:', !!apiKey);
   
-  if (!apiKey) {
-    console.warn('[BACKEND WARNING] GEMINI_API_KEY is missing. Falling back to local Adaptive AI Router...');
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+  // Set headers for Chunked transfer
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
-    const reply = getLocalAIReply(req.body.prompt);
-    
-    // Stream response chunk by chunk
-    for (let i = 0; i < reply.length; i += 20) {
-      res.write(reply.substring(i, i + 20));
-      await new Promise(r => setTimeout(r, 20));
-    }
+  if (!apiKey) {
+    console.warn('[BACKEND WARNING] GEMINI_API_KEY is missing.');
+    res.write("I couldn't reach the AI service. Please try again.");
     res.end();
     return;
   }
 
   try {
-    const { prompt, history = [], attachments = [] } = req.body;
-    console.log(`[BACKEND TRACE] Payload received. Prompt length: ${prompt?.length || 0}, History length: ${history?.length || 0}, Attachments: ${attachments?.length || 0}`);
-    
+    const { prompt, history = [], attachments = [], context = {} } = req.body;
+    console.log(`[BACKEND TRACE] Prompt: "${prompt?.substring(0, 30)}...", History: ${history.length}, Attachments: ${attachments.length}`);
+
+    const systemInstruction = getSystemInstruction(context);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-flash-lite-latest",
-      systemInstruction: SYSTEM_PROMPT
-    });
-    console.log('[BACKEND TRACE] Gemini client initialized successfully with model gemini-flash-lite-latest.');
 
     // Format history for Gemini
     const formattedHistory = [];
-
     history.forEach(msg => {
-      if (msg.type !== 'setup' && msg.type !== 'error') {
+      if (msg.role && msg.content && msg.type !== 'setup' && msg.type !== 'error') {
         formattedHistory.push({
           role: msg.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: msg.content || ' ' }]
@@ -286,14 +255,11 @@ app.post('/api/chat', async (req, res) => {
       }
     });
 
-    console.log('[BACKEND TRACE] Starting chat session with formatted history...');
-    const chat = model.startChat({ history: formattedHistory });
-
     const parts = [];
     if (prompt) {
       parts.push({ text: prompt });
     } else {
-      parts.push({ text: 'Analyze the attached files.' });
+      parts.push({ text: 'Analyze the attached details.' });
     }
 
     if (attachments && attachments.length > 0) {
@@ -311,158 +277,80 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    console.log('[BACKEND TRACE] Sending message stream to Gemini...');
-    const result = await chat.sendMessageStream(parts);
-    console.log('[BACKEND TRACE] Stream established successfully. Sending response to client.');
+    console.log('[BACKEND TRACE] Fetching streaming reply from Gemini with retries...');
+    const result = await startGeminiStreamWithRetry(genAI, systemInstruction, formattedHistory, parts);
     
-    // Set headers for Server-Sent Events / Chunked transfer
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
     for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      res.write(chunkText);
+      res.write(chunk.text());
     }
     
     console.log('[BACKEND TRACE] Stream completed successfully.');
     res.end();
   } catch (error) {
-    console.error('[BACKEND ERROR] Full Gemini Error. Falling back to local Adaptive AI Router...');
-    console.error(error.stack || error);
-    
-    try {
-      if (!res.headersSent) {
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Transfer-Encoding', 'chunked');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-      }
-      const reply = getLocalAIReply(req.body.prompt);
-      for (let i = 0; i < reply.length; i += 20) {
-        res.write(reply.substring(i, i + 20));
-        await new Promise(r => setTimeout(r, 20));
-      }
-      res.end();
-    } catch (streamErr) {
-      console.error('[BACKEND FATAL] Streaming fallback failed:', streamErr);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'AI Service temporarily unavailable. Please retry.' });
-      }
-    }
+    console.error('[BACKEND ERROR] All streaming retries failed:', error.stack || error);
+    res.write("I couldn't reach the AI service. Please try again.");
+    res.end();
   }
 });
 
 app.post('/api/ai/chat', async (req, res) => {
-  const startTime = Date.now();
-  const requestId = `req-${Math.floor(100000 + Math.random() * 900000)}`;
-  console.log(`[${requestId}] AI Request Received`);
+  console.log('[BACKEND TRACE] JSON request received at /api/ai/chat');
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.warn('[BACKEND WARNING] GEMINI_API_KEY is missing.');
+    return res.status(200).json({
+      success: false,
+      message: "I couldn't reach the AI service. Please try again."
+    });
+  }
 
   try {
-    console.log(`[${requestId}] Checking Environment...`);
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn(`[${requestId}] GEMINI_API_KEY is missing on the server.`);
-      return res.status(200).json({
-        success: false,
-        message: 'AI service is temporarily unavailable. Please contact your administrator or configure the AI service.'
-      });
-    }
-    console.log(`[${requestId}] Environment Loaded`);
-
-    // 1. Validate Input Payload (Step 7)
-    const { message, history = [], context = {} } = req.body;
-    if (message === undefined || message === null) {
-      return res.status(400).json({ success: false, message: 'message parameter is required' });
-    }
-    if (typeof message !== 'string') {
-      return res.status(400).json({ success: false, message: 'message must be a string' });
-    }
-    const cleanMessage = message.trim().replace(/<[^>]*>/g, ''); // Basic input sanitization
-    if (cleanMessage.length === 0) {
-      return res.status(400).json({ success: false, message: 'message cannot be empty' });
-    }
-
-    // 2. Build Context Prefix (Step 9)
-    const company = context.companyName || 'Business Brain Enterprise';
-    const industry = context.customIndustry || 'Enterprise';
-    const stage = context.businessStage || 'Growing';
-    const systemInstruction = `${SYSTEM_PROMPT}\n\nUser Context:\n- Company: ${company}\n- Industry: ${industry}\n- Stage: ${stage}\n\nResponse must ALWAYS be clean JSON: { "success": true, "reply": "markdown_text" }. Never return raw text. Never expose stack traces or API keys.`;
-
-    // 3. Initialize Gemini (Step 3)
-    console.log(`[${requestId}] Gemini client initialization started.`);
+    const { message, history = [], attachments = [], context = {} } = req.body;
+    const systemInstruction = getSystemInstruction(context);
     const genAI = new GoogleGenerativeAI(apiKey);
-    
-    // Choose model with fallback
-    let modelName = 'gemini-2.5-flash';
-    let model;
-    try {
-      console.log(`[${requestId}] Selecting model: ${modelName}`);
-      model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
-      console.log(`[${requestId}] Model Selected`);
-    } catch (modelErr) {
-      console.warn(`[${requestId}] gemini-2.5-flash failed to initialize. Falling back to gemini-2.5-pro...`);
-      modelName = 'gemini-2.5-pro';
-      model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
-      console.log(`[${requestId}] Fallback Model Selected: ${modelName}`);
-    }
-    console.log(`[${requestId}] Gemini Client Initialized`);
 
-    // 4. Chat session history formatting (Step 10)
-    const formattedHistory = [
-      { role: 'user', parts: [{ text: systemInstruction }] },
-      { role: 'model', parts: [{ text: 'Understood. I am Business Brain AI. Context loaded successfully.' }] }
-    ];
-    history.forEach(h => {
-      if (h.content && h.role) {
+    const formattedHistory = [];
+    history.forEach(msg => {
+      if (msg.role && msg.content && msg.type !== 'setup' && msg.type !== 'error') {
         formattedHistory.push({
-          role: h.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: h.content }]
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content || ' ' }]
         });
       }
     });
 
-    // 5. Send Prompt with 3x retry and backoff (Step 12)
-    console.log(`[${requestId}] Sending Prompt`);
-    let replyText = '';
-    let success = false;
-    let attempts = 3;
-    let delay = 800;
+    const parts = [{ text: message || 'Analyze current state.' }];
 
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-      try {
-        console.log(`[${requestId}] Waiting Response (Attempt ${attempt}/${attempts})...`);
-        const chat = model.startChat({ history: formattedHistory });
-        const result = await chat.sendMessage(cleanMessage);
-        replyText = result.response.text();
-        success = true;
-        console.log(`[${requestId}] Response Received`);
-        break;
-      } catch (geminiErr) {
-        console.error(`[${requestId}] Attempt ${attempt} failed:`, geminiErr.message);
-        if (attempt === attempts) {
-          throw geminiErr;
+    if (attachments && attachments.length > 0) {
+      attachments.forEach(file => {
+        if (file.inlineData) {
+          parts.push({
+            inlineData: {
+              data: file.inlineData.data,
+              mimeType: file.type
+            }
+          });
+        } else if (file.textData) {
+          parts.push({ text: file.textData });
         }
-        await new Promise(r => setTimeout(r, delay * Math.pow(2, attempt)));
-      }
+      });
     }
 
-    // 6. Format and Send Response (Step 8)
-    console.log(`[${requestId}] Formatting Response`);
-    const executionTime = Date.now() - startTime;
-    console.log(`[${requestId}] Sending Response. Execution time: ${executionTime}ms`);
-    return res.json({ success: true, reply: replyText });
-
-  } catch (error) {
-    const executionTime = Date.now() - startTime;
-    console.error(`[BACKEND ERROR] Request ${requestId} failed. Time: ${executionTime}ms. Error details:`);
-    console.error(error.stack || error);
+    console.log('[BACKEND TRACE] Fetching non-streaming reply from Gemini with retries...');
+    const result = await startGeminiStreamWithRetry(genAI, systemInstruction, formattedHistory, parts);
     
-    // Safety Fallback: Return clean error JSON instead of HTTP 502/crashes (Step 5)
-    return res.status(200).json({
+    let replyText = '';
+    for await (const chunk of result.stream) {
+      replyText += chunk.text();
+    }
+
+    res.json({ success: true, reply: replyText });
+  } catch (error) {
+    console.error('[BACKEND ERROR] All non-streaming retries failed:', error.stack || error);
+    res.status(200).json({
       success: false,
-      message: 'AI service is temporarily unavailable. Please try again.'
+      message: "I couldn't reach the AI service. Please try again."
     });
   }
 });

@@ -1,24 +1,54 @@
 // ── Secure Backend AI Service ──────────────────────────────────────────────
+
+function getActiveModuleFromPath(path) {
+  if (path.includes('/finance')) return 'Finance';
+  if (path.includes('/crm')) return 'CRM';
+  if (path.includes('/hrms') || path.includes('/hr')) return 'HR';
+  if (path.includes('/inventory')) return 'Inventory';
+  if (path.includes('/marketing')) return 'Marketing';
+  if (path.includes('/meetings')) return 'Meetings';
+  if (path.includes('/support')) return 'Support';
+  if (path.includes('/documents')) return 'Documents';
+  if (path.includes('/analytics')) return 'Analytics';
+  if (path.includes('/automation')) return 'Automation';
+  if (path.includes('/sales')) return 'Sales';
+  if (path.includes('/goals')) return 'Goals';
+  if (path.includes('/risks')) return 'Risks';
+  return 'General';
+}
+
 export async function generateAIResponse(prompt, history = [], attachments = [], abortSignal) {
+  const userId = 'guest'; 
+  const configRaw = localStorage.getItem(`company_details_${userId}`);
+  let context = {};
+  if (configRaw) {
+    try {
+      context = JSON.parse(configRaw);
+    } catch (e) {}
+  }
+
+  // Gather location-specific workspace module context automatically
+  const currentPath = window.location.pathname;
+  context.currentPath = currentPath;
+  context.activeModule = getActiveModuleFromPath(currentPath);
+
+  // System context parameters
+  context.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+  context.language = 'English';
+  context.theme = 'Dark';
+
+  console.log('[FRONTEND TRACE] Generating AI Response for module:', context.activeModule);
+
   const generator = async function* () {
     try {
-      const userId = 'guest'; 
-      const configRaw = localStorage.getItem(`company_details_${userId}`);
-      let context = {};
-      if (configRaw) {
-        try {
-          context = JSON.parse(configRaw);
-        } catch (e) {}
-      }
-
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          message: prompt, 
-          history: history.map(h => ({ role: h.role, content: h.content })), 
+          prompt, 
+          history: history.map(h => ({ role: h.role, content: h.content, type: h.type })), 
           attachments,
           context
         }),
@@ -26,30 +56,27 @@ export async function generateAIResponse(prompt, history = [], attachments = [],
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || `HTTP ${response.status} Error`);
+        throw new Error(`HTTP ${response.status} Error`);
       }
 
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'AI service returned a failure state.');
-      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
 
-      const replyText = result.reply || '';
-
-      // Typewriter effect simulation to remain compatible with frontend expect yield stream
-      const chunkSize = 6;
-      for (let i = 0; i < replyText.length; i += chunkSize) {
-        const chunk = replyText.substring(i, i + chunkSize);
-        yield { text: () => chunk };
-        await new Promise(r => setTimeout(r, 8));
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value, { stream: !done });
+        if (chunkValue) {
+          yield { text: () => chunkValue };
+        }
       }
     } catch (error) {
       if (error.name === 'AbortError') {
         throw error;
       }
-      console.error('[FRONTEND TRACE] AI Service Error caught:', error);
-      throw new Error(error.message || 'Unknown Network Error');
+      console.error('[FRONTEND TRACE] AI Service Stream Error caught:', error);
+      throw new Error("I couldn't reach the AI service. Please try again.");
     }
   };
 
