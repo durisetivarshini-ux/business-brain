@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bot, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
+import { toast } from 'react-hot-toast';
 
 export function AIPrioritySorter() {
   const summaries = [
@@ -8,6 +9,10 @@ export function AIPrioritySorter() {
     { title: "Operations Alert", time: "1 hr ago", summary: "Server Rack X inventory will deplete by tomorrow. PO drafted.", action: "Approve PO", priority: "high" },
     { title: "Team Update", time: "3 hrs ago", summary: "Sarah Jenkins completed the Q3 Financial Audit early.", action: "View Audit", priority: "low" }
   ];
+
+  const handleAction = (action) => {
+    toast.success(`Action triggered: ${action}`, { icon: '⚡' });
+  };
 
   return (
     <GlassCard className="p-6 border-[#5B5FFF]/30 bg-gradient-to-br from-[#0B1120]/90 to-[#050816]/90 relative overflow-hidden h-full flex flex-col">
@@ -34,7 +39,10 @@ export function AIPrioritySorter() {
               <span className="text-[#94A3B8] text-xs">{item.time}</span>
             </div>
             <p className="text-[#94A3B8] text-sm leading-relaxed mb-3">{item.summary}</p>
-            <button className={`text-xs font-bold flex items-center gap-1 hover:underline ${item.priority === 'high' ? 'text-[#EF4444]' : 'text-[#00D4FF]'}`}>
+            <button 
+              onClick={() => handleAction(item.action)}
+              className={`text-xs font-bold flex items-center gap-1 hover:underline ${item.priority === 'high' ? 'text-[#EF4444]' : 'text-[#00D4FF]'}`}
+            >
               {item.action} <ArrowRight size={12} />
             </button>
           </div>

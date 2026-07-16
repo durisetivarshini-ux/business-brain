@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SecurityPanel } from './SecurityPanel';
 import { UserManagement } from './UserManagement';
-import { IntegrationHub } from './IntegrationHub';
+import { BillingPanel } from './BillingPanel';
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('users');
@@ -34,11 +34,7 @@ export function AdminDashboard() {
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'security' && <SecurityPanel />}
         {activeTab === 'integrations' && <IntegrationHub />}
-        {activeTab === 'billing' && (
-          <div className="flex flex-col items-center justify-center h-64 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-            <p className="text-[#94A3B8] text-sm text-center">Billing & Invoices Module<br/>(Coming in next update)</p>
-          </div>
-        )}
+        {activeTab === 'billing' && <BillingPanel />}
       </div>
 
     </div>
