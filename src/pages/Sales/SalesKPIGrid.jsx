@@ -1,21 +1,19 @@
 import React from 'react';
 import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion } from 'framer-motion';
-import { IndianRupee, Users, ShoppingBag, PieChart, TrendingUp, Target } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, PieChart, TrendingUp } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 
 export function SalesKPIGrid() {
   const stats = [
     { title: "Revenue", value: 28.6, icon: <IndianRupee size={20}/>, color: "#10B981", prefix: "₹", suffix: " Cr", decimals: 1, status: "↑ 18%" },
-    { title: "New Leads", value: 2480, icon: <Users size={20}/>, color: "#5B5FFF", status: "Active" },
-    { title: "Orders", value: 1186, icon: <ShoppingBag size={20}/>, color: "#EC4899", status: "Processed" },
+    { title: "Pipeline", value: 12.4, icon: <Users size={20}/>, color: "#5B5FFF", prefix: "₹", suffix: " Cr", decimals: 1, status: "Active" },
     { title: "Conversion Rate", value: 41, icon: <PieChart size={20}/>, color: "#00D4FF", suffix: "%", status: "+5%" },
     { title: "Avg Deal Size", value: 2.8, icon: <TrendingUp size={20}/>, color: "#F59E0B", prefix: "₹", suffix: " L", decimals: 1, status: "Growing" },
-    { title: "Monthly Target", value: 92, icon: <Target size={20}/>, color: "#7C3AED", suffix: "%", status: "Achieved" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => (
         <motion.div
           key={i}
@@ -46,13 +44,6 @@ export function SalesKPIGrid() {
               <CountUp end={stat.value} decimals={stat.decimals || 0} duration={2} separator="," />
               {stat.suffix}
             </div>
-
-            {/* Simulated mini chart logic based on title */}
-            {stat.title === "Monthly Target" && (
-              <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
-                <div className="h-full" style={{ width: `${stat.value}%`, backgroundColor: stat.color, opacity: 0.8 }} />
-              </div>
-            )}
 
           </GlassCard>
         </motion.div>

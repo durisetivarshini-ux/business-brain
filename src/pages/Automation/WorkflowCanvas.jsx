@@ -3,19 +3,57 @@ import { motion } from 'framer-motion';
 import { UserPlus, Mail, Fingerprint, Laptop, Users, CreditCard, Calendar, ArrowRight } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 
+import { useWorkspace } from '../../context/WorkspaceContext';
+
 export function WorkflowCanvas() {
   const [activeNode, setActiveNode] = useState(0);
+  const { workspaceConfig: config } = useWorkspace();
+  const industry = config?.customIndustry || 'Software Company';
 
-  // Simulated node sequence for Employee Onboarding
-  const nodes = [
-    { id: 1, type: "Trigger", title: "Employee Created", icon: <UserPlus size={18} />, color: "#F59E0B", app: "Workday" },
-    { id: 2, type: "Action", title: "Create Email", icon: <Mail size={18} />, color: "#00D4FF", app: "Google Workspace" },
-    { id: 3, type: "Action", title: "Generate ID Card", icon: <Fingerprint size={18} />, color: "#EC4899", app: "Security System" },
-    { id: 4, type: "Action", title: "Assign Laptop", icon: <Laptop size={18} />, color: "#7C3AED", app: "IT Assets" },
-    { id: 5, type: "Action", title: "Notify HR", icon: <Users size={18} />, color: "#5B5FFF", app: "Slack" },
-    { id: 6, type: "Action", title: "Create Payroll", icon: <CreditCard size={18} />, color: "#10B981", app: "Finance DB" },
-    { id: 7, type: "Action", title: "Schedule Training", icon: <Calendar size={18} />, color: "#F59E0B", app: "LMS" },
-  ];
+  // Dynamic workflows based on selected industry
+  const getIndustryWorkflowNodes = () => {
+    switch (industry) {
+      case 'Restaurant':
+        return [
+          { id: 1, type: "Trigger", title: "Order Placed", icon: <UserPlus size={18} />, color: "#F59E0B", app: "Mobile App/POS" },
+          { id: 2, type: "Action", title: "Generate Kitchen Ticket", icon: <Mail size={18} />, color: "#00D4FF", app: "Kitchen Display" },
+          { id: 3, type: "Action", title: "Deduct Ingredients", icon: <Fingerprint size={18} />, color: "#EC4899", app: "Inventory DB" },
+          { id: 4, type: "Action", title: "Schedule Rider", icon: <Laptop size={18} />, color: "#7C3AED", app: "Delivery Portal" },
+          { id: 5, type: "Action", title: "Notify Customer", icon: <Users size={18} />, color: "#10B981", app: "SMS Gateway" },
+        ];
+      case 'Hospital':
+        return [
+          { id: 1, type: "Trigger", title: "Patient Admission", icon: <UserPlus size={18} />, color: "#EC4899", app: "Clinic Registry" },
+          { id: 2, type: "Action", title: "Assign Ward & Room", icon: <Laptop size={18} />, color: "#00D4FF", app: "Bed Allocator" },
+          { id: 3, type: "Action", title: "Assign On-Duty Doctor", icon: <Users size={18} />, color: "#7C3AED", app: "Staff Roster" },
+          { id: 4, type: "Action", title: "Dispatch Prescription", icon: <Fingerprint size={18} />, color: "#10B981", app: "Pharmacy DB" },
+        ];
+      case 'School':
+        return [
+          { id: 1, type: "Trigger", title: "Student Register", icon: <UserPlus size={18} />, color: "#F59E0B", app: "Admissions Portal" },
+          { id: 2, type: "Action", title: "Create Fee Ledger", icon: <CreditCard size={18} />, color: "#00D4FF", app: "Billing Accounts" },
+          { id: 3, type: "Action", title: "Assign Teacher", icon: <Users size={18} />, color: "#EC4899", app: "Class grid" },
+          { id: 4, type: "Action", title: "Notify Parents", icon: <Mail size={18} />, color: "#7C3AED", app: "Slack/Email" },
+        ];
+      case 'Manufacturing':
+        return [
+          { id: 1, type: "Trigger", title: "Raw Material Deficit", icon: <UserPlus size={18} />, color: "#EC4899", app: "IoT Scales Sensor" },
+          { id: 2, type: "Action", title: "Auto-Generate PO", icon: <CreditCard size={18} />, color: "#00D4FF", app: "Procurement Hub" },
+          { id: 3, type: "Action", title: "Verify Machine Safety", icon: <Fingerprint size={18} />, color: "#7C3AED", app: "OEE Telemetry" },
+          { id: 4, type: "Action", title: "Dispatch Assembly Run", icon: <Laptop size={18} />, color: "#10B981", app: "Shopfloor Queue" },
+        ];
+      default: // Software Company / Default
+        return [
+          { id: 1, type: "Trigger", title: "Code Commit / PR", icon: <UserPlus size={18} />, color: "#F59E0B", app: "GitHub" },
+          { id: 2, type: "Action", title: "Run CI Test Cases", icon: <Mail size={18} />, color: "#00D4FF", app: "QA Pipelines" },
+          { id: 3, type: "Action", title: "Deploy Pod Cluster", icon: <Fingerprint size={18} />, color: "#EC4899", app: "Kubernetes DevOps" },
+          { id: 4, type: "Action", title: "Auto-assign Code Reviewer", icon: <Users size={18} />, color: "#7C3AED", app: "Jira / Slack" },
+          { id: 5, type: "Action", title: "Synchronize Release logs", icon: <Laptop size={18} />, color: "#10B981", app: "Vault System" },
+        ];
+    }
+  };
+
+  const nodes = getIndustryWorkflowNodes();
 
   // Animate the flow sequence to simulate execution
   useEffect(() => {

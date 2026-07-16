@@ -3,65 +3,189 @@ import { Video, Upload, FileText, CheckSquare, Calendar, Users, Zap, Clock, Chev
 import { GlassCard } from '@/components/ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-
-
-const meetings = [
-  {
-    id: 1,
-    title: 'Q3 Board Meeting',
-    date: 'Oct 12, 2026',
-    duration: '45 min',
-    attendees: 8,
-    status: 'Analyzed',
-    summary: 'The board reviewed Q3 financial performance, which exceeded targets by 12%. The primary discussion focused on the upcoming Series C funding round and the proposed acquisition of TechNova. The CEO expressed concerns about Q4 supply chain risks in APAC, while the CTO outlined the roadmap for the new AI Copilot integration.',
-    decisions: [
-      'Approved the $2M budget allocation for the Series C marketing roadshow.',
-      'Delayed the EU expansion until Q2 2027 to focus on North American retention.',
-    ],
-    tasks: [
-      { assignee: 'Sarah (CFO)', task: 'Draft initial Series C term sheet for review.', due: 'Next Week' },
-      { assignee: 'David (CTO)', task: 'Finalize technical due diligence on TechNova.', due: 'This Friday' },
-      { assignee: 'Marcus (COO)', task: 'Secure secondary suppliers for APAC region.', due: 'Next Week' },
-    ],
-    nextMeeting: 'Nov 15, 2026',
-  },
-  {
-    id: 2,
-    title: 'Product Sync: Mobile App',
-    date: 'Oct 10, 2026',
-    duration: '30 min',
-    attendees: 5,
-    status: 'Analyzed',
-    summary: 'Product and engineering teams aligned on the Q4 mobile roadmap. Key discussion around push notification strategy and onboarding flow optimization.',
-    decisions: [
-      'Approved A/B testing for new onboarding flow.',
-    ],
-    tasks: [
-      { assignee: 'Nina (PM)', task: 'Create A/B test spec and success metrics.', due: 'This Week' },
-    ],
-    nextMeeting: 'Oct 24, 2026',
-  },
-  {
-    id: 3,
-    title: 'Client Kickoff: NovaCorp',
-    date: 'Oct 08, 2026',
-    duration: '60 min',
-    attendees: 6,
-    status: 'Analyzed',
-    summary: 'Successful kickoff with NovaCorp leadership. Contract signed for the Enterprise tier. Implementation to begin in 3 weeks.',
-    decisions: [
-      'Assigned dedicated CSM to NovaCorp account.',
-      'Go-live target set for November 30, 2026.',
-    ],
-    tasks: [
-      { assignee: 'James (CSM)', task: 'Send welcome package and integration docs.', due: 'Tomorrow' },
-    ],
-    nextMeeting: 'Oct 22, 2026',
-  },
-];
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 export function MeetingsPage() {
-  const [selectedMeeting, setSelectedMeeting] = useState(meetings[0]);
+  const { workspaceConfig: config } = useWorkspace();
+  const industry = config?.customIndustry || 'Software Company';
+
+  const getIndustryMeetings = () => {
+    switch (industry) {
+      case 'Restaurant':
+        return [
+          {
+            id: 1,
+            title: 'Weekly Kitchen Ops & Menu Sync',
+            date: 'Oct 12, 2026',
+            duration: '45 min',
+            attendees: 8,
+            status: 'Analyzed',
+            summary: 'The kitchen operations team reviewed ingredients waste logs and dining menu margins. Popular items sales rose 14% while delivery delays peaked at dinner hours. Proposed adding 2 backup delivery riders.',
+            decisions: [
+              'Approved dropping low-margin soup items from menu.',
+              'Secured fresh tomato supplier backup for weekends.',
+            ],
+            tasks: [
+              { assignee: 'Chef Marco', task: 'Revise main menu card options.', due: 'This Friday' },
+              { assignee: 'Nikhil (Manager)', task: 'Hire 2 weekend delivery riders.', due: 'Next Week' },
+            ],
+            nextMeeting: 'Oct 19, 2026',
+          },
+          {
+            id: 2,
+            title: 'Inventory Supplier Audit',
+            date: 'Oct 10, 2026',
+            duration: '30 min',
+            attendees: 4,
+            status: 'Analyzed',
+            summary: 'Reviewed supplier packaging costs and raw food bulk purchase ledgers.',
+            decisions: [
+              'Switched dry storage supplier for 8% discount.',
+            ],
+            tasks: [
+              { assignee: 'Raj (Accountant)', task: 'Finalize credit terms document.', due: 'Tomorrow' },
+            ],
+            nextMeeting: 'Oct 24, 2026',
+          }
+        ];
+      case 'Hospital':
+        return [
+          {
+            id: 1,
+            title: 'ICU Telemetry Patient Load Sync',
+            date: 'Oct 12, 2026',
+            duration: '45 min',
+            attendees: 12,
+            status: 'Analyzed',
+            summary: 'Telemetry review of critical patient vitals and ICU room availability status. Emergency admissions increased 18% during weekend peak hours. Action recommended to rotate on-duty rosters.',
+            decisions: [
+              'Assigned additional nurse supervisor to ICU ICU-102 ward.',
+              'Approved medical equipment diagnostics upgrades.',
+            ],
+            tasks: [
+              { assignee: 'Dr. Sarah (ICU Lead)', task: 'Examine patient vital thresholds.', due: 'Today' },
+              { assignee: 'James (Operations)', task: 'Audit ICU bed allocations.', due: 'This Friday' },
+            ],
+            nextMeeting: 'Oct 19, 2026',
+          },
+          {
+            id: 2,
+            title: 'Pharmacy Refill Review',
+            date: 'Oct 10, 2026',
+            duration: '30 min',
+            attendees: 5,
+            status: 'Analyzed',
+            summary: 'Reviewed critical medicine inventory and supplier reorder delivery times.',
+            decisions: [
+              'Approved bulk order for pediatric vaccines.',
+            ],
+            tasks: [
+              { assignee: 'Karan (Pharmacist)', task: 'Verify temperature-sensitive logs.', due: 'Tomorrow' },
+            ],
+            nextMeeting: 'Oct 24, 2026',
+          }
+        ];
+      case 'School':
+        return [
+          {
+            id: 1,
+            title: 'Admissions & Tuition Fee Audit',
+            date: 'Oct 12, 2026',
+            duration: '45 min',
+            attendees: 6,
+            status: 'Analyzed',
+            summary: 'Aligned on student registry enrollments and outstanding fee invoice summaries. Propose automating email reminders for outstanding fees collections.',
+            decisions: [
+              'Approved 5% fee discount for early term-2 payments.',
+            ],
+            tasks: [
+              { assignee: 'Mrs. Anand (Principal)', task: 'Send letter to parents regarding term calendar.', due: 'Next Week' },
+              { assignee: 'Vikram (Registrar)', task: 'List outstanding invoice fee accounts.', due: 'This Friday' },
+            ],
+            nextMeeting: 'Oct 19, 2026',
+          }
+        ];
+      case 'Software Company':
+        return [
+          {
+            id: 1,
+            title: 'Dev Pipeline & CI Build Sync',
+            date: 'Oct 12, 2026',
+            duration: '45 min',
+            attendees: 8,
+            status: 'Analyzed',
+            summary: 'The dev team reviewed main build pipelines. Sprint velocity has improved, but main-api deployments show occasional timeout issues. Recommending upgrading K8s memory thresholds.',
+            decisions: [
+              'Approved moving analytics worker to independent queue.',
+              'Delayed code refactor to prioritize API stability patch.',
+            ],
+            tasks: [
+              { assignee: 'David (CTO)', task: 'Upgrade DevOps cluster pod allocations.', due: 'This Friday' },
+              { assignee: 'Sarah (QA)', task: 'Validate UI end-to-end test cases.', due: 'Next Week' },
+            ],
+            nextMeeting: 'Oct 19, 2026',
+          },
+          {
+            id: 2,
+            title: 'QA Test Suite Cases Review',
+            date: 'Oct 10, 2026',
+            duration: '30 min',
+            attendees: 5,
+            status: 'Analyzed',
+            summary: 'Reviewed failed payment gateway test scripts and API schema validation checks.',
+            decisions: [
+              'Approved test coverage threshold target of 85%.',
+            ],
+            tasks: [
+              { assignee: 'Nina (PM)', task: 'Assign bugs to billing team devs.', due: 'Today' },
+            ],
+            nextMeeting: 'Oct 24, 2026',
+          }
+        ];
+      case 'Manufacturing':
+        return [
+          {
+            id: 1,
+            title: 'Assembly Line Machine Telemetry Sync',
+            date: 'Oct 12, 2026',
+            duration: '45 min',
+            attendees: 10,
+            status: 'Analyzed',
+            summary: 'Reviewed OEE telemetry results and machine vibration sensors logs. Recommended scheduling emergency maintenance on Assembly Line 3.',
+            decisions: [
+              'Approved switching steel supplier due to carbon content discrepancy.',
+            ],
+            tasks: [
+              { assignee: 'Marcus (Factory Manager)', task: 'Schedule Assembly Line 3 maintenance run.', due: 'This Saturday' },
+              { assignee: 'Sarah (Procurement)', task: 'Renegotiate wholesale raw steel sheets.', due: 'Next Week' },
+            ],
+            nextMeeting: 'Oct 19, 2026',
+          }
+        ];
+      default:
+        return [
+          {
+            id: 1,
+            title: 'Q3 Board Meeting',
+            date: 'Oct 12, 2026',
+            duration: '45 min',
+            attendees: 8,
+            status: 'Analyzed',
+            summary: 'The board reviewed Q3 financial performance, which exceeded targets by 12%. CTO outlined roadmap for AI Copilot integration.',
+            decisions: [
+              'Approved the $2M budget allocation for Series C roadshow.',
+            ],
+            tasks: [
+              { assignee: 'Sarah (CFO)', task: 'Draft initial Series C term sheet.', due: 'Next Week' },
+            ],
+            nextMeeting: 'Nov 15, 2026',
+          }
+        ];
+    }
+  };
+
+  const dynamicMeetings = getIndustryMeetings();
+  const [selectedMeeting, setSelectedMeeting] = useState(dynamicMeetings[0]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -176,7 +300,7 @@ export function MeetingsPage() {
           <div>
             <h3 className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest mb-3 px-1">Recent Meetings</h3>
             <div className="space-y-2">
-              {meetings.map(meeting => (
+              {dynamicMeetings.map(meeting => (
                 <motion.div
                   key={meeting.id}
                   whileHover={{ scale: 1.01 }}

@@ -24,6 +24,9 @@ export function AuthProvider({ children }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        currentUser.name = currentUser.displayName;
+      }
       setUser(currentUser);
       setLoading(false);
     });
@@ -88,7 +91,7 @@ export function AuthProvider({ children }) {
       }
     }
     
-    setUser({ ...userCredential.user, displayName: name });
+    setUser({ ...userCredential.user, displayName: name, name: name });
     return userCredential;
   };
 
@@ -170,7 +173,7 @@ export function AuthProvider({ children }) {
       }
     }
     
-    setUser({ ...auth.currentUser, ...data, displayName: data.name || auth.currentUser.displayName });
+    setUser({ ...auth.currentUser, ...data, displayName: data.name || auth.currentUser.displayName, name: data.name || auth.currentUser.displayName });
   };
 
   const value = {

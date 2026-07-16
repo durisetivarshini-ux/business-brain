@@ -1,21 +1,19 @@
 import React from 'react';
 import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion } from 'framer-motion';
-import { Users, UserPlus, Trophy, Wallet, Percent, HeartPulse } from 'lucide-react';
+import { Users, UserPlus, Wallet, Percent } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 
 export function CRMStatsGrid() {
   const stats = [
     { title: "Total Customers", value: 18250, icon: <Users size={20}/>, color: "#5B5FFF", prefix: "" },
     { title: "New Leads", value: 1240, icon: <UserPlus size={20}/>, color: "#00D4FF", prefix: "" },
-    { title: "Deals Closed", value: 580, icon: <Trophy size={20}/>, color: "#10B981", prefix: "" },
     { title: "Revenue", value: 5.4, icon: <Wallet size={20}/>, color: "#F59E0B", prefix: "₹", suffix: " Cr", decimals: 1 },
     { title: "Conversion Rate", value: 42, icon: <Percent size={20}/>, color: "#7C3AED", prefix: "", suffix: "%" },
-    { title: "Customer Sat.", value: 96, icon: <HeartPulse size={20}/>, color: "#EC4899", prefix: "", suffix: "%" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => (
         <motion.div
           key={i}

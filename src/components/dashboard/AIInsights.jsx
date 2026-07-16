@@ -5,19 +5,28 @@ import { Link } from 'react-router-dom';
 import { generateAIResponse } from '../../services/ai';
 import ReactMarkdown from 'react-markdown';
 
+import { useWorkspace } from '../../context/WorkspaceContext';
+
 export function AIInsights() {
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { workspaceConfig: config } = useWorkspace();
 
   useEffect(() => {
     let isMounted = true;
 
     async function fetchInsights() {
       try {
-        const stream = await generateAIResponse(
-          "Generate a brief, realistic daily operational summary for an enterprise dashboard. Highlight 1 positive metric, 1 warning or alert, and ask a proactive question at the end. Keep it concise (under 80 words)."
-        );
+        const companyName = config?.companyName || "Business Brain Enterprise";
+        const industry = config?.customIndustry || "Software Company";
+        const employeeCount = config?.employeeCount || "1-5 Employees";
+        const goals = config?.goals?.join(", ") || "Increase Revenue";
+        const challenges = config?.businessChallenges?.join(", ") || "Automation";
+
+        const prompt = `You are the AI Operations Analyst for ${companyName}, a ${industry} with ${employeeCount}. Their goals are ${goals} and they face challenges with ${challenges}. Generate a brief, realistic daily operational summary for an enterprise dashboard. Highlight 1 positive metric, 1 warning or alert matching their industry/context, and ask a proactive question at the end. Keep it concise (under 80 words). Never use generic names like John Doe or Acme Corp.`;
+
+        const stream = await generateAIResponse(prompt);
         
         setIsLoading(false);
         let accumulatedText = "";

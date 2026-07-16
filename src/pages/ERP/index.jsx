@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { OperationsDashboard } from './OperationsDashboard';
-import { X, FileText, Loader2, CheckCircle, Download, AlertTriangle } from 'lucide-react';
+import { ModuleHeader } from '@/components/ui/ModuleHeader';
+import { SubPageTabs } from '@/components/ui/SubPageTabs';
+import { ERPKPIGrid } from './ERPKPIGrid';
+import { AIOperationsAssistant } from './AIOperationsAssistant';
+import { WarehouseMap } from './WarehouseMap';
+import { ManufacturingStatus } from './ManufacturingStatus';
+import { LogisticsTracker } from './LogisticsTracker';
+import { ERPCharts } from './ERPCharts';
+import { X, FileText, Loader2, CheckCircle, Download, AlertTriangle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Portal } from '../../components/ui/Portal';
+import { Portal } from '@/components/ui/Portal';
+import { GlassCard } from '@/components/ui/GlassCard';
 
-// ── Approval Queue Modal ──
 function ApprovalQueueModal({ onClose }) {
   const [items, setItems] = useState([
     { id: 'PO-2847', desc: 'Raw Steel — 5 tons', dept: 'Manufacturing', amount: 24500, status: 'pending' },
@@ -73,7 +80,6 @@ function ApprovalQueueModal({ onClose }) {
   );
 }
 
-// ── ERP Report Generator ──
 function ERPReportModal({ onClose }) {
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
@@ -127,11 +133,6 @@ h1{color:#fff;font-size:28px;margin:0 0 5px}
 <div class="item"><span>Assembly Line Alpha — Running</span><span class="tag" style="background:rgba(16,185,129,0.1);color:#10b981">98%</span></div>
 <div class="item"><span>Packaging Unit 1 — Maintenance</span><span class="tag" style="background:rgba(245,158,11,0.1);color:#f59e0b">0%</span></div>
 <div class="item"><span>Circuit Printing — Running</span><span class="tag" style="background:rgba(0,212,255,0.1);color:#00d4ff">92%</span></div>
-</div>
-<div class="section"><h2>AI Recommendations</h2>
-<div class="item"><span>Increase safety stock for Zone B1 (raw materials at 15%)</span><span class="tag" style="background:rgba(239,68,68,0.1);color:#ef4444">High</span></div>
-<div class="item"><span>Renegotiate Supplier ABC contract</span><span class="tag" style="background:rgba(245,158,11,0.1);color:#f59e0b">Medium</span></div>
-<div class="item"><span>Expand Warehouse A capacity</span><span class="tag" style="background:rgba(239,68,68,0.1);color:#ef4444">High</span></div>
 </div>
 <div class="footer">© ${new Date().getFullYear()} Business Brain Inc. Confidential and Proprietary.</div>
 </div></body></html>`;
@@ -200,37 +201,127 @@ h1{color:#fff;font-size:28px;margin:0 0 5px}
 
 export function ERPPage() {
   const [activeModal, setActiveModal] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'warehouse', label: 'Warehouse Map' },
+    { id: 'manufacturing', label: 'Manufacturing' },
+    { id: 'logistics', label: 'Logistics Tracker' }
+  ];
+
+  const handleExportPDF = async () => {
+    setActiveModal('report');
+  };
+
+  const recentApprovals = [
+    { id: 'PO-2847', item: 'Raw Steel — 5 tons', dept: 'Manufacturing', amount: '$24,500', status: 'Pending' },
+    { id: 'PO-2848', item: 'Circuit Boards — 2000 units', dept: 'Assembly', amount: '$18,200', status: 'Pending' },
+    { id: 'PO-2850', item: 'Packaging Materials — Bulk', dept: 'Logistics', amount: '$6,800', status: 'Pending' },
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10">
+    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 relative z-10 pb-10">
       
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/20 border border-[#10B981]/30 text-[#10B981] text-xs font-bold uppercase tracking-wider mb-3">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span> Systems Online
-          </div>
-          <h1 className="font-display text-3xl font-bold text-white tracking-tight mb-2">Enterprise Operations</h1>
-          <p className="text-[#94A3B8] font-medium">Mission control for procurement, manufacturing, and supply chain logistics.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setActiveModal('approvals')}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
-          >
-            Approval Queue <span className="ml-2 bg-rose-500 text-white px-2 py-0.5 rounded-full text-xs">3</span>
-          </button>
-          <button
-            onClick={() => setActiveModal('report')}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#5B5FFF] text-white text-sm font-bold shadow-[0_0_15px_rgba(0,212,255,0.4)] transition-transform hover:scale-[1.02]"
-          >
-            Generate ERP Report
-          </button>
-        </div>
-      </div>
+      {/* Module Header */}
+      <ModuleHeader 
+        title="Enterprise Operations"
+        description="Mission control for procurement, manufacturing, and supply chain logistics."
+        primaryAction={{
+          label: "Approval Queue (3)",
+          onClick: () => setActiveModal('approvals'),
+          icon: <AlertTriangle size={14} className="text-rose-400" />
+        }}
+        moduleName="ERP"
+        onExportPDF={handleExportPDF}
+      />
 
-      {/* Main ERP Dashboard Layout */}
-      <OperationsDashboard />
+      {/* Subpage Tabs */}
+      <SubPageTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {activeTab === 'dashboard' && (
+        <div className="flex flex-col gap-6">
+          {/* 1. 4 KPIs */}
+          <ERPKPIGrid />
+
+          {/* 2. AI Operations Assistant */}
+          <AIOperationsAssistant />
+
+          {/* 3. Main Business Widget (Manufacturing + Warehouse Map) */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="flex flex-col bg-white/5 border border-white/5 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Warehouse Status Map</h3>
+              <WarehouseMap />
+            </div>
+            <div className="flex flex-col bg-white/5 border border-white/5 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Manufacturing Assembly Lines</h3>
+              <ManufacturingStatus />
+            </div>
+          </div>
+
+          {/* 4. Analytics & Logistics Tracker */}
+          <div className="grid grid-cols-1 gap-6">
+            <LogisticsTracker />
+            <ERPCharts />
+          </div>
+
+          {/* 5. Recent Activity Table */}
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Pending Purchase Orders</h3>
+              <button onClick={() => setActiveModal('approvals')} className="text-xs text-[#00D4FF] hover:underline flex items-center gap-1 cursor-pointer">
+                Open Queue <ArrowRight size={12} />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-[#94A3B8]">
+                <thead className="text-xs text-white uppercase bg-white/5 rounded-lg">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">PO ID</th>
+                    <th className="px-4 py-3">Item Description</th>
+                    <th className="px-4 py-3">Department</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3 rounded-r-lg">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentApprovals.map((po, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs text-[#00D4FF]">{po.id}</td>
+                      <td className="px-4 py-3 font-bold text-white">{po.item}</td>
+                      <td className="px-4 py-3 text-white">{po.dept}</td>
+                      <td className="px-4 py-3 text-white font-semibold">{po.amount}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                          {po.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'warehouse' && (
+        <div className="flex flex-col gap-6">
+          <WarehouseMap />
+        </div>
+      )}
+
+      {activeTab === 'manufacturing' && (
+        <div className="flex flex-col gap-6">
+          <ManufacturingStatus />
+        </div>
+      )}
+
+      {activeTab === 'logistics' && (
+        <div className="flex flex-col gap-6">
+          <LogisticsTracker />
+        </div>
+      )}
 
       {/* Modals */}
       <AnimatePresence>

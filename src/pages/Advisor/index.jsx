@@ -3,6 +3,7 @@ import { Bot, Sparkles, FileText, TrendingUp, Download, Send, Search, PieChart, 
 import { GlassCard } from '@/components/ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 const SUGGESTED_ANALYSIS = [
   {
@@ -155,6 +156,52 @@ function formatReportHTML(messages) {
 }
 
 export function AdvisorPage() {
+  const { workspaceConfig: config } = useWorkspace();
+  const industry = config?.customIndustry || 'Software Company';
+
+  const getIndustrySuggestedAnalysis = () => {
+    switch (industry) {
+      case 'Restaurant':
+        return [
+          { id: 'pricing', label: 'Optimize Menu Pricing', prompt: 'Recommend menu items to drop or promote based on popular demand and cost margins.', icon: '🍔' },
+          { id: 'competitor', label: 'Supplier Cost Assessment', prompt: 'Suggest 3 food ingredients supplier cost-reduction options.', icon: '📦' },
+          { id: 'ops', label: 'Track Kitchen Delay Risk', prompt: 'Review peak-hour kitchen order processing bottlenecks.', icon: '⏱️' }
+        ];
+      case 'Hospital':
+        return [
+          { id: 'pricing', label: 'Analyze Nurse Shifts Stress', prompt: 'Provide advisory recommendations for patient-load scheduling variance.', icon: '🏥' },
+          { id: 'competitor', label: 'Pharmacy Reorder Forecast', prompt: 'Identify critical pharmacy stock out risk warnings.', icon: '💊' },
+          { id: 'ops', label: 'Track Admission Load Peak', prompt: 'Forecast emergency admission spikes based on historical trends.', icon: '📊' }
+        ];
+      case 'School':
+        return [
+          { id: 'pricing', label: 'Tuition Fee Review', prompt: 'Analyze Term Tuition Fees collection trends and outline optimization strategies.', icon: '🎓' },
+          { id: 'competitor', label: 'Student Registry Audit', prompt: 'Generate summary report of student admissions registrations and dropouts.', icon: '📝' },
+          { id: 'ops', label: 'Teacher Grid Utilization', prompt: 'Examine teacher class hours assignment rosters and optimization paths.', icon: '🏫' }
+        ];
+      case 'Software Company':
+        return [
+          { id: 'pricing', label: 'Review Pricing Strategy', prompt: 'Analyze our current pricing tiers. Are we leaving revenue on the table? What competitive pricing adjustments should we consider for Q4?', icon: '💰' },
+          { id: 'competitor', label: 'Competitor Threat Assessment', prompt: 'Assess the top 3 competitor threats we face right now. What are their strengths, our vulnerabilities, and recommended counter-strategies?', icon: '🏁' },
+          { id: 'ops', label: 'Optimize Operational Costs', prompt: 'Review our operational cost structure. Where are we overspending and what are 3 actionable ways to reduce costs without impacting growth?', icon: '⚙️' }
+        ];
+      case 'Manufacturing':
+        return [
+          { id: 'pricing', label: 'Assembly Line Efficiency', prompt: 'Recommend machine maintenance schedules to reduce downtime.', icon: '🏭' },
+          { id: 'competitor', label: 'Raw Steel Sourcing Assessment', prompt: 'Map alternative supply options to counter tariff cost adjustments.', icon: '⛓️' },
+          { id: 'ops', label: 'Logistics Fleet Tracking', prompt: 'Optimize logistics shipping fleet schedule routes.', icon: '🚛' }
+        ];
+      default:
+        return [
+          { id: 'pricing', label: 'Review Pricing Strategy', prompt: 'Analyze our current pricing tiers. Are we leaving revenue on the table?', icon: '💰' },
+          { id: 'competitor', label: 'Competitor Threat Assessment', prompt: 'Assess the top 3 competitor threats we face right now.', icon: '🏁' },
+          { id: 'ops', label: 'Optimize Operational Costs', prompt: 'Review our operational cost structure.', icon: '⚙️' }
+        ];
+    }
+  };
+
+  const dynamicAnalysisList = getIndustrySuggestedAnalysis();
+
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [isTyping, setIsTyping] = useState(false);
@@ -332,7 +379,7 @@ export function AdvisorPage() {
               <Search size={16} className="text-[#00D4FF]"/> Suggested Analysis
             </h3>
             <div className="space-y-2">
-              {SUGGESTED_ANALYSIS.map((item) => (
+              {dynamicAnalysisList.map((item) => (
                 <motion.button
                   key={item.id}
                   whileHover={{ x: 3 }}

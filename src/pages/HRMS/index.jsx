@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { HRDashboard } from './HRDashboard';
+import { ModuleHeader } from '@/components/ui/ModuleHeader';
+import { SubPageTabs } from '@/components/ui/SubPageTabs';
+import { HRKPIGrid } from './HRKPIGrid';
+import { AIHRAssistant } from './AIHRAssistant';
+import { EmployeeDirectory } from './EmployeeDirectory';
 import { EmployeeSentiment } from './EmployeeSentiment';
-import { X, Loader2, CheckCircle, UserPlus, DollarSign } from 'lucide-react';
+import { RecruitmentBoard } from './RecruitmentBoard';
+import { HRCharts } from './HRCharts';
+import { X, Loader2, CheckCircle, UserPlus, DollarSign, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { GlassCard } from '@/components/ui/GlassCard';
 
 function AddEmployeeModal({ onClose }) {
   const [form, setForm] = useState({ name: '', role: '', department: 'Engineering' });
@@ -20,7 +27,7 @@ function AddEmployeeModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-55 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-md rounded-2xl border border-[#00D4FF]/30 bg-[#0B1120] shadow-2xl p-8 relative overflow-hidden">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white z-10"><X size={20} /></button>
         {done ? (
@@ -82,7 +89,7 @@ function PayrollModal({ onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-55 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative flex flex-col items-center text-center">
         {loading ? (
           <>
@@ -110,28 +117,136 @@ function PayrollModal({ onClose }) {
 
 export function HRMSPage() {
   const [modal, setModal] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'employees', label: 'Employees' },
+    { id: 'recruitment', label: 'Recruitment' },
+    { id: 'payroll', label: 'Payroll' },
+    { id: 'analytics', label: 'Analytics' }
+  ];
+
+  const recentHires = [
+    { name: 'Aditi Rao', role: 'Frontend Developer', department: 'Engineering', date: '16 Jul 2026', status: 'Onboarding' },
+    { name: 'Rahul Sharma', role: 'Product Manager', department: 'Product', date: '12 Jul 2026', status: 'Active' },
+    { name: 'Sneha Patel', role: 'UI/UX Designer', department: 'Design', date: '10 Jul 2026', status: 'Active' },
+    { name: 'Vijay Kumar', role: 'HR Specialist', department: 'HR', date: '05 Jul 2026', status: 'Active' },
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10 pb-10">
+    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 relative z-10 pb-10">
       
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-white tracking-tight mb-2">People & Organization</h1>
-          <p className="text-[#94A3B8] font-medium">Workforce command center for talent, payroll, and recruitment.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setModal('payroll')} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-2">
-            <DollarSign size={14} /> Process Payroll
-          </button>
-          <button onClick={() => setModal('add')} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#5B5FFF] text-white text-sm font-bold shadow-[0_0_15px_rgba(0,212,255,0.4)] transition-transform hover:scale-[1.02] flex items-center gap-2">
-            <UserPlus size={14} /> Add Employee
-          </button>
-        </div>
-      </div>
+      {/* Module Header */}
+      <ModuleHeader 
+        title="People & Organization"
+        description="Workforce command center for talent, payroll, and recruitment."
+        primaryAction={{
+          label: "Add Employee",
+          onClick: () => setModal('add'),
+          icon: <UserPlus size={14} />
+        }}
+        secondaryAction={{
+          label: "Process Payroll",
+          onClick: () => setModal('payroll'),
+          icon: <DollarSign size={14} />
+        }}
+        moduleName="HRMS"
+      />
 
-      <HRDashboard />
-      <EmployeeSentiment />
+      {/* Subpage Tabs */}
+      <SubPageTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {activeTab === 'dashboard' && (
+        <div className="flex flex-col gap-6">
+          {/* 1. 4 KPIs */}
+          <HRKPIGrid />
+
+          {/* 2. AI Assistant */}
+          <AIHRAssistant />
+
+          {/* 3. Operational Widgets */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EmployeeDirectory />
+            <RecruitmentBoard />
+          </div>
+
+          {/* 4. Analytics Charts (exactly 2) */}
+          <HRCharts />
+
+          {/* 5. Recent Activity Table */}
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Onboarded Employees</h3>
+              <button onClick={() => setActiveTab('employees')} className="text-xs text-[#00D4FF] hover:underline flex items-center gap-1 cursor-pointer">
+                View employee list <ArrowRight size={12} />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-[#94A3B8]">
+                <thead className="text-xs text-white uppercase bg-white/5 rounded-lg">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">Name</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Department</th>
+                    <th className="px-4 py-3">Date Joined</th>
+                    <th className="px-4 py-3 rounded-r-lg">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentHires.map((hire, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 font-bold text-white">{hire.name}</td>
+                      <td className="px-4 py-3 text-white">{hire.role}</td>
+                      <td className="px-4 py-3">{hire.department}</td>
+                      <td className="px-4 py-3">{hire.date}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          hire.status === 'Active' ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30' :
+                          'bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30'
+                        }`}>
+                          {hire.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'employees' && (
+        <div className="flex flex-col gap-6">
+          <EmployeeDirectory />
+        </div>
+      )}
+
+      {activeTab === 'recruitment' && (
+        <div className="flex flex-col gap-6">
+          <RecruitmentBoard />
+        </div>
+      )}
+
+      {activeTab === 'payroll' && (
+        <div className="flex flex-col gap-6">
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 max-w-xl mx-auto text-center">
+            <h2 className="text-xl font-bold text-white mb-2">Payroll Information</h2>
+            <p className="text-sm text-[#94A3B8] mb-6">Process disbursements and view monthly employee organization costs.</p>
+            <button onClick={() => setModal('payroll')} className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-[#050816] font-bold hover:scale-[1.02] transition-all cursor-pointer">
+              Disburse Monthly Payroll
+            </button>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="flex flex-col gap-6">
+          <HRCharts />
+          <EmployeeSentiment />
+        </div>
+      )}
 
       {modal === 'add' && <AddEmployeeModal onClose={() => setModal(null)} />}
       {modal === 'payroll' && <PayrollModal onClose={() => setModal(null)} />}

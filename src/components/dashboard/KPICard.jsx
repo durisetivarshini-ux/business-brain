@@ -3,8 +3,10 @@ import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
+import { useNavigate } from 'react-router-dom';
 
-export function KPICard({ title, value, prefix = "", suffix = "", trend, isPositive, data, color, delay = 0 }) {
+export function KPICard({ title, value, prefix = "", suffix = "", trend, isPositive, data, color, delay = 0, path }) {
+  const navigate = useNavigate();
   console.log("KPICard IMPORTS:", { CountUp, motion, ArrowUpRight, ArrowDownRight, GlassCard });
   // Simple SVG sparkline generation
   const points = data.map((val, i) => `${(i / (data.length - 1)) * 100},${100 - (val / Math.max(...data)) * 100}`).join(" ");
@@ -14,6 +16,8 @@ export function KPICard({ title, value, prefix = "", suffix = "", trend, isPosit
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
+      onClick={() => path && navigate(path)}
+      className={path ? "cursor-pointer" : ""}
     >
       <GlassCard hover glowColor={color} className="p-6 relative overflow-hidden group border-white/5 bg-[#0B1120]/60">
         

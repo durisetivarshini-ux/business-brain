@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { SalesDashboard } from './SalesDashboard';
+import { ModuleHeader } from '@/components/ui/ModuleHeader';
+import { SubPageTabs } from '@/components/ui/SubPageTabs';
+import { SalesKPIGrid } from './SalesKPIGrid';
+import { AISalesAssistant } from './AISalesAssistant';
+import { PipelineBoard } from './PipelineBoard';
+import { SalesCharts } from './SalesCharts';
 import { RevenueForecast } from './RevenueForecast';
 import { OpportunityFinder } from './OpportunityFinder';
 import toast from 'react-hot-toast';
-import { X, Target, TrendingUp, CheckCircle, Calendar, User, IndianRupee, Tag, Loader2 } from 'lucide-react';
+import { X, Target, TrendingUp, CheckCircle, Calendar, User, IndianRupee, Tag, Loader2, ArrowRight } from 'lucide-react';
+import { GlassCard } from '@/components/ui/GlassCard';
 
 function NewDealModal({ onClose }) {
   const [form, setForm] = useState({ client: '', value: '', stage: 'Prospecting', owner: '' });
@@ -36,16 +42,13 @@ function NewDealModal({ onClose }) {
     toast.success(`Deal for ${form.client} added to pipeline!`);
   };
 
-  // ── Success Screen ──
   if (createdDeal) {
     const stageColor = stageColors[createdDeal.stage] || '#10B981';
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
         <div className="w-full max-w-md rounded-2xl border border-[#10B981]/30 bg-[#0B1120] shadow-2xl p-8 relative overflow-hidden">
-          {/* Glow */}
           <div className="absolute top-0 right-0 w-40 h-40 bg-[#10B981]/10 blur-[60px] rounded-full pointer-events-none" />
 
-          {/* Success icon */}
           <div className="flex flex-col items-center text-center mb-6">
             <div className="w-16 h-16 rounded-full bg-[#10B981]/20 border border-[#10B981]/30 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
               <CheckCircle size={32} className="text-[#10B981]" />
@@ -54,7 +57,6 @@ function NewDealModal({ onClose }) {
             <p className="text-sm text-[#94A3B8]">Successfully added to your sales pipeline.</p>
           </div>
 
-          {/* Deal Card */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-5 mb-6 relative z-10">
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -125,7 +127,6 @@ function NewDealModal({ onClose }) {
     );
   }
 
-  // ── Form Screen ──
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative">
@@ -201,26 +202,166 @@ function ViewTargetsModal({ onClose }) {
   );
 }
 
+function downloadSalesReport() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN');
+  const rows = [
+    ['Business Brain – Sales Report', '', '', ''],
+    [`Generated on: ${dateStr}`, '', '', ''],
+    ['', '', '', ''],
+    ['Metric', 'Current Value', 'Target', 'Status'],
+    ['Total Revenue', '₹28.6 Cr', '₹35 Cr', '82%'],
+    ['New Leads', '2,480', '3,000', '83%'],
+    ['Orders Processed', '1,186', '1,400', '85%'],
+    ['Conversion Rate', '41%', '50%', '82%'],
+    ['Avg Deal Size', '₹2.8 L', '₹3.5 L', '80%'],
+    ['Monthly Target', '92%', '100%', '92%'],
+  ];
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Sales_Report_${now.toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function SalesPage() {
   const [showNewDeal, setShowNewDeal] = useState(false);
   const [showTargets, setShowTargets] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'pipeline', label: 'Pipeline' },
+    { id: 'forecast', label: 'Forecast' },
+    { id: 'opportunities', label: 'Opportunities' }
+  ];
+
+  const handleExportPDF = async () => {
+    const promise = new Promise(r => setTimeout(r, 1200));
+    toast.promise(promise, {
+      loading: 'Generating Sales Report...',
+      success: 'Sales Report downloaded!',
+      error: 'Failed to generate report.',
+    });
+    await promise;
+    downloadSalesReport();
+  };
+
+  const recentDeals = [
+    { client: 'Nexus Industries', value: '₹1.8 Cr', stage: 'Negotiation', owner: 'Raj Kumar', date: '16 Jul 2026' },
+    { client: 'Healthcare Sector', value: '₹1.2 Cr', stage: 'Proposal', owner: 'Aarav Mehta', date: '15 Jul 2026' },
+    { client: 'Global Logistics', value: '₹28 L', stage: 'Prospecting', owner: 'Pooja Sen', date: '14 Jul 2026' },
+    { client: 'Apex Labs', value: '₹85 L', stage: 'Won', owner: 'Vikram Singh', date: '12 Jul 2026' },
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10 pb-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-white tracking-tight mb-2">Sales Revenue</h1>
-          <p className="text-[#94A3B8] font-medium">Drive growth with AI-powered sales pipelines and revenue forecasting.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowTargets(true)} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">View Targets</button>
-          <button onClick={() => setShowNewDeal(true)} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#00D4FF] text-white text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-transform hover:scale-[1.02]">+ New Deal</button>
-        </div>
-      </div>
+    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 relative z-10 pb-10">
+      
+      {/* Module Header */}
+      <ModuleHeader 
+        title="Sales Revenue"
+        description="Drive growth with AI-powered sales pipelines and revenue forecasting."
+        primaryAction={{
+          label: "+ New Deal",
+          onClick: () => setShowNewDeal(true)
+        }}
+        secondaryAction={{
+          label: "View Targets",
+          onClick: () => setShowTargets(true)
+        }}
+        moduleName="Sales"
+        onExportPDF={handleExportPDF}
+      />
 
-      <SalesDashboard />
-      <RevenueForecast />
-      <OpportunityFinder />
+      {/* Subpage Tabs */}
+      <SubPageTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {activeTab === 'dashboard' && (
+        <div className="flex flex-col gap-6">
+          {/* 1. 4 Executive KPI Cards */}
+          <SalesKPIGrid />
+
+          {/* 2. AI Insight Panel */}
+          <AISalesAssistant />
+
+          {/* 3. Main Business Widget & Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <PipelineBoard />
+            </div>
+            <div>
+              <SalesCharts />
+            </div>
+          </div>
+
+          {/* 4. Recent Activity Table */}
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Enterprise Deals</h3>
+              <button onClick={() => setActiveTab('pipeline')} className="text-xs text-[#00D4FF] hover:underline flex items-center gap-1 cursor-pointer">
+                View pipeline <ArrowRight size={12} />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-[#94A3B8]">
+                <thead className="text-xs text-white uppercase bg-white/5 rounded-lg">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">Client</th>
+                    <th className="px-4 py-3">Value</th>
+                    <th className="px-4 py-3">Stage</th>
+                    <th className="px-4 py-3">Owner</th>
+                    <th className="px-4 py-3 rounded-r-lg">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentDeals.map((deal, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 font-bold text-white">{deal.client}</td>
+                      <td className="px-4 py-3 text-[#10B981] font-semibold">{deal.value}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          deal.stage === 'Won' ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30' :
+                          deal.stage === 'Negotiation' ? 'bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/30' :
+                          deal.stage === 'Proposal' ? 'bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30' :
+                          'bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30'
+                        }`}>
+                          {deal.stage}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-white">{deal.owner}</td>
+                      <td className="px-4 py-3">{deal.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'pipeline' && (
+        <div className="flex flex-col gap-6">
+          <PipelineBoard />
+        </div>
+      )}
+
+      {activeTab === 'forecast' && (
+        <div className="flex flex-col gap-6">
+          <RevenueForecast />
+        </div>
+      )}
+
+      {activeTab === 'opportunities' && (
+        <div className="flex flex-col gap-6">
+          <OpportunityFinder />
+        </div>
+      )}
 
       {showNewDeal && <NewDealModal onClose={() => setShowNewDeal(false)} />}
       {showTargets && <ViewTargetsModal onClose={() => setShowTargets(false)} />}

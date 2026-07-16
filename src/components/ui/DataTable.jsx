@@ -1,11 +1,36 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function DataTable({ data, columns, title = "Data Table", searchable = true }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const handleExportCSV = () => {
+    try {
+      const headers = columns.map(c => `"${c.label.replace(/"/g, '""')}"`).join(",");
+      const rows = data.map(item => 
+        columns.map(c => {
+          const val = item[c.key];
+          return `"${String(val !== undefined ? val : '').replace(/"/g, '""')}"`;
+        }).join(",")
+      );
+      const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${title.toLowerCase().replace(/\s+/g, '_')}_export.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`${title} exported as CSV successfully!`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to export table data.");
+    }
+  };
 
   // Search
   const filteredData = useMemo(() => {
@@ -70,7 +95,10 @@ export function DataTable({ data, columns, title = "Data Table", searchable = tr
               />
             </div>
           )}
-          <button className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-2">
+          <button 
+            onClick={handleExportCSV}
+            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-2"
+          >
             <Download size={16} />
             <span className="hidden sm:inline">Export</span>
           </button>

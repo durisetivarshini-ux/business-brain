@@ -1,7 +1,7 @@
 import React from 'react';
 import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, CreditCard, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react';
 
 export function FinanceKPIs() {
   const stats = [
@@ -9,12 +9,10 @@ export function FinanceKPIs() {
     { title: "Net Profit",       value: 7.2,  icon: <DollarSign size={20}/>,  color: "#00D4FF", prefix: "₹", suffix: " Cr", decimals: 1, trend: "+15%",        trendType: "up" },
     { title: "Total Expenses",   value: 11.3, icon: <TrendingDown size={20}/>,color: "#F59E0B", prefix: "₹", suffix: " Cr", decimals: 1, trend: "-4%",         trendType: "down" },
     { title: "Cash Balance",     value: 3.8,  icon: <Activity size={20}/>,    color: "#5B5FFF", prefix: "₹", suffix: " Cr", decimals: 1, trend: "Stable",      trendType: "neutral" },
-    { title: "Pending Payments", value: 82,   icon: <CreditCard size={20}/>,  color: "#EC4899", prefix: "₹", suffix: " L",  decimals: 0, trend: "Action Req.", trendType: "neutral" },
-    { title: "Profit Margin",    value: 39,   icon: <PieChart size={20}/>,    color: "#7C3AED", suffix: "%",               decimals: 0, trend: "+2%",         trendType: "up" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => (
         <motion.div
           key={i}
@@ -40,7 +38,7 @@ export function FinanceKPIs() {
             style={{ backgroundColor: stat.color }}
           />
 
-          {/* Content — fixed padding, no GlassCard double-padding */}
+          {/* Content */}
           <div className="relative z-10 p-5 flex flex-col h-full">
             <div className="flex justify-between items-start w-full mb-4">
               <div

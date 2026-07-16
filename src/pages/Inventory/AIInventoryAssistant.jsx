@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Bot, Sparkles, FileText, ShoppingCart, Activity, X, Info, Settings, Loader2, CheckCircle, Download, FileSpreadsheet } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Portal } from '../../components/ui/Portal';
+import { InsightPanel } from '../../components/ui/InsightPanel';
 import { useNavigate } from 'react-router-dom';
 import { mockDb } from '@/utils/mockDb';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,19 +27,15 @@ export function AIInventoryAssistant() {
     { text: "Product X demand will increase next week.", highlight: "demand will increase" },
     { text: "Warehouse B is nearing capacity.", highlight: "nearing capacity" },
     { text: "Supplier ABC has delayed shipments.", highlight: "delayed shipments" },
-    { text: "AI recommends ordering 850 units today.", highlight: "ordering 850 units today" },
   ];
 
   const handleConfirmOrder = () => {
     setConfirmingOrder(true);
     setTimeout(() => {
-      // Update local storage product SKU-2038
       mockDb.updateProductStock('SKU-2038', reorderQty);
       setConfirmingOrder(false);
       setShowReorderWizard(false);
       toast.success(`Purchase Order for ${reorderQty} units confirmed!`, { icon: '📝' });
-      
-      // Force inventory index refresh if on that page
       window.dispatchEvent(new Event('storage'));
     }, 1500);
   };
@@ -50,7 +47,6 @@ export function AIInventoryAssistant() {
     setTimeout(() => {
       const products = mockDb.getProducts();
       const lowStock = products.filter(p => p.stock <= p.minStock);
-      const optimalStock = products.filter(p => p.stock > p.minStock);
       
       const reportHTML = `<!DOCTYPE html>
 <html>
@@ -87,7 +83,6 @@ export function AIInventoryAssistant() {
       </div>
       <div class="logo">Business Brain</div>
     </div>
-
     <div class="summary-grid">
       <div class="stat">
         <div class="stat-val">${products.length}</div>
@@ -106,69 +101,6 @@ export function AIInventoryAssistant() {
         <div class="stat-lbl">Total Asset Value</div>
       </div>
     </div>
-
-    <div class="section">
-      <h2>Active Stock Registry</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>SKU</th>
-            <th>Product Name</th>
-            <th>Warehouse</th>
-            <th>Stock Level</th>
-            <th>Safety Limit</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${products.map(p => `
-            <tr>
-              <td><strong>${p.sku}</strong></td>
-              <td>${p.name}</td>
-              <td>${p.warehouse}</td>
-              <td>${p.stock.toLocaleString()} units</td>
-              <td>${p.minStock} units</td>
-              <td><span class="badge ${p.stock <= p.minStock ? 'badge-low' : 'badge-ok'}">${p.stock <= p.minStock ? 'Low Stock' : 'Healthy'}</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="section">
-      <h2>Supplier Performance Metrics</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Supplier</th>
-            <th>Categories Provided</th>
-            <th>On-Time delivery Ratio</th>
-            <th>Grade</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>GlobalTech Ltd.</strong></td>
-            <td>Electronics</td>
-            <td>96.5%</td>
-            <td><span class="badge badge-ok">Grade A</span></td>
-          </tr>
-          <tr>
-            <td><strong>BoxCo Supply</strong></td>
-            <td>Packaging</td>
-            <td>91.2%</td>
-            <td><span class="badge badge-ok">Grade B</span></td>
-          </tr>
-          <tr>
-            <td><strong>MetalCorp Inc.</strong></td>
-            <td>Raw Materials</td>
-            <td>88.4%</td>
-            <td><span class="badge badge-low">Grade C</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
     <div class="footer">
       This document is confidential and proprietary to Business Brain. Generated for internal audit and operations optimization.
     </div>
@@ -185,7 +117,6 @@ export function AIInventoryAssistant() {
       const fileName = `Inventory_Report_${new Date().toISOString().slice(0, 10)}.${fileExt}`;
       a.download = fileName;
       
-      a.href = url;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -199,86 +130,35 @@ export function AIInventoryAssistant() {
   };
 
   return (
-    <GlassCard className="p-8 border-[#7C3AED]/30 bg-gradient-to-br from-[#0B1120]/90 to-[#050816]/90 relative overflow-hidden shadow-[0_10px_40px_rgba(124,58,237,0.15)]">
-      
-      {/* Abstract Background Glows */}
-      <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[150%] bg-[#7C3AED]/10 blur-[80px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-50%] left-[-10%] w-[40%] h-[100%] bg-[#EC4899]/10 blur-[80px] rounded-full pointer-events-none" />
+    <>
+      <InsightPanel
+        moduleName="Inventory"
+        title="Inventory AI"
+        subtitle="Stock Insights"
+        badgeText="AI Predictor Active"
+        description="I have analyzed your warehouse capacities, historical sales trends, and supplier lead times. Here are the critical inventory actions for today."
+        insights={insights}
+        recommendationsModal={RecommendationsModal}
+        themeColor="#7C3AED"
+      />
 
-      <div className="flex flex-col md:flex-row gap-8 relative z-10">
-        
-        {/* Left: AI Intro */}
-        <div className="md:w-1/3 flex flex-col justify-center border-r border-white/10 pr-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/30 text-[#7C3AED] text-xs font-bold uppercase tracking-wider mb-6 self-start">
-            <Sparkles size={14} /> AI Predictor Active
-          </div>
-          
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.4)]">
-              <Bot size={28} className="text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white font-display">Inventory AI</h2>
-              <p className="text-sm font-semibold text-[#94A3B8]">Stock Insights</p>
-            </div>
-          </div>
-
-          <p className="text-[#94A3B8] text-sm leading-relaxed mb-8">
-            I have analyzed your warehouse capacities, historical sales trends, and supplier lead times. Here are the critical inventory actions for today.
-          </p>
-
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => setShowReorderWizard(true)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white text-sm font-bold shadow-lg shadow-[#7C3AED]/20 transition-transform hover:scale-[1.02]"
-            >
-              <ShoppingCart size={16} /> Reorder Stock
-            </button>
-            <button 
-              onClick={() => navigate('/app/inventory/forecast')}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
-            >
-              <Activity size={16} /> View AI Forecast
-            </button>
-            <button 
-              onClick={() => setShowReportModal(true)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
-            >
-              <FileText size={16} /> Generate Report
-            </button>
-          </div>
-        </div>
-
-        {/* Right: Insights List */}
-        <div className="md:w-2/3 flex flex-col justify-center">
-          <div className="space-y-4">
-            {insights.map((insight, i) => (
-              <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
-                <span className="text-[#EC4899] mt-1 text-lg leading-none">•</span>
-                <p className="text-[#F8FAFC] text-base leading-relaxed">
-                  {insight.text.split(insight.highlight).map((part, index, array) => (
-                    <React.Fragment key={index}>
-                      {part}
-                      {index < array.length - 1 && (
-                        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#7C3AED] to-[#EC4899]">
-                          {insight.highlight}
-                        </span>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <div className="flex justify-center gap-4 mt-[-24px] mb-6 z-10 relative">
+        <button onClick={() => setShowReorderWizard(true)} className="px-4 py-2.5 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED] text-xs font-bold hover:bg-[#7C3AED]/25 transition-all flex items-center gap-2 cursor-pointer">
+          <ShoppingCart size={14} /> Reorder Wizard
+        </button>
+        <button onClick={() => navigate('/app/inventory/forecast')} className="px-4 py-2.5 rounded-xl bg-[#EC4899]/15 border border-[#EC4899]/30 text-[#EC4899] text-xs font-bold hover:bg-[#EC4899]/25 transition-all flex items-center gap-2 cursor-pointer">
+          <Activity size={14} /> View AI Forecast
+        </button>
+        <button onClick={() => setShowReportModal(true)} className="px-4 py-2.5 rounded-xl bg-[#00D4FF]/15 border border-[#00D4FF]/30 text-[#00D4FF] text-xs font-bold hover:bg-[#00D4FF]/25 transition-all flex items-center gap-2 cursor-pointer">
+          <FileText size={14} /> Generate Report
+        </button>
       </div>
 
       {/* ── AI Reorder Wizard Modal ── */}
       <AnimatePresence>
         {showReorderWizard && (
           <Portal>
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -316,7 +196,6 @@ export function AIInventoryAssistant() {
                     </div>
                   </div>
 
-                  {/* Quantity Editing Widget */}
                   <div className="p-4 bg-white/5 border border-white/5 rounded-xl">
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-xs font-bold text-[#94A3B8] uppercase">Order Quantity</span>
@@ -354,18 +233,6 @@ export function AIInventoryAssistant() {
                     </div>
                   </div>
 
-                  {/* Purchase Order Preview */}
-                  <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span className="text-[9px] font-bold text-white/40 uppercase block mb-1">PO Document Preview</span>
-                    <div className="font-mono text-[9px] text-[#94A3B8] bg-black/30 p-3 rounded-lg leading-relaxed border border-white/5">
-                      <p className="font-bold text-white text-center pb-1.5 border-b border-white/5">PURCHASE ORDER PO-2026-0922</p>
-                      <p className="mt-1">Date: {new Date().toLocaleDateString()} · Buyer: Business Brain HQ</p>
-                      <p>Vendor: BoxCo Supply · Delivery: DDP Warehouse B</p>
-                      <p className="mt-2 border-t border-white/5 pt-1">SKU-2038 Packaging Unit B-200 · Qty: {reorderQty} · Price: $12.00</p>
-                      <p className="font-bold text-white mt-1.5 border-t border-dashed border-white/10 pt-1.5">Total Amount Due: ${(reorderQty * 12).toLocaleString()}.00</p>
-                    </div>
-                  </div>
-
                   <div className="flex gap-3 justify-end pt-4 border-t border-white/5">
                     <button
                       type="button"
@@ -379,14 +246,7 @@ export function AIInventoryAssistant() {
                       disabled={confirmingOrder}
                       className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white text-sm font-bold hover:scale-[1.02] transition-transform flex items-center gap-2"
                     >
-                      {confirmingOrder ? (
-                        <>
-                          <Loader2 className="animate-spin" size={14} />
-                          Confirming...
-                        </>
-                      ) : (
-                        'Confirm Order'
-                      )}
+                      {confirmingOrder ? 'Confirming...' : 'Confirm Order'}
                     </button>
                   </div>
                 </div>
@@ -400,7 +260,7 @@ export function AIInventoryAssistant() {
       <AnimatePresence>
         {showReportModal && (
           <Portal>
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -428,7 +288,7 @@ export function AIInventoryAssistant() {
                         onClick={() => setReportFormat('pdf')}
                         className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
                           reportFormat === 'pdf' 
-                            ? 'bg-[#7C3AED]/20 border-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]' 
+                            ? 'bg-[#7C3AED]/20 border-[#7C3AED] text-white' 
                             : 'bg-white/5 border-white/10 text-[#94A3B8] hover:text-white'
                         }`}
                       >
@@ -439,7 +299,7 @@ export function AIInventoryAssistant() {
                         onClick={() => setReportFormat('excel')}
                         className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
                           reportFormat === 'excel' 
-                            ? 'bg-[#10B981]/20 border-[#10B981] text-white shadow-[0_0_12px_rgba(16,185,205,0.3)]' 
+                            ? 'bg-[#10B981]/20 border-[#10B981] text-white' 
                             : 'bg-white/5 border-white/10 text-[#94A3B8] hover:text-white'
                         }`}
                       >
@@ -462,14 +322,7 @@ export function AIInventoryAssistant() {
                       disabled={generatingReport}
                       className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#5B5FFF] text-white text-sm font-bold hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                     >
-                      {generatingReport ? (
-                        <>
-                          <Loader2 className="animate-spin" size={14} />
-                          Compiling...
-                        </>
-                      ) : (
-                        'Compile Now'
-                      )}
+                      {generatingReport ? 'Compiling...' : 'Compile Now'}
                     </button>
                   </div>
                 </div>
@@ -478,7 +331,23 @@ export function AIInventoryAssistant() {
           </Portal>
         )}
       </AnimatePresence>
+    </>
+  );
+}
 
-    </GlassCard>
+function RecommendationsModal({ onClose }) {
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-6 relative overflow-hidden">
+          <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors z-20"><X size={20} /></button>
+          <h3 className="text-lg font-bold text-white mb-4">Stock Restock Recommendations</h3>
+          <p className="text-sm text-[#94A3B8] leading-relaxed mb-4">
+            AI recommends creating immediate purchase order for Packaging Unit B-200 to meet upcoming customer demand spikes.
+          </p>
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10">Close</button>
+        </div>
+      </div>
+    </Portal>
   );
 }

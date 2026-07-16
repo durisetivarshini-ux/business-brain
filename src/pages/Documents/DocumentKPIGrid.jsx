@@ -1,21 +1,19 @@
 import React from 'react';
 import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion } from 'framer-motion';
-import { FileText, HardDrive, Share2, Sparkles, PenTool, History } from 'lucide-react';
+import { FileText, HardDrive, Sparkles, PenTool } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 
 export function DocumentKPIGrid() {
   const stats = [
     { title: "Total Documents", value: 28520, icon: <FileText size={20}/>, color: "#10B981", status: "Indexed" },
     { title: "Storage Used", value: 1.8, icon: <HardDrive size={20}/>, color: "#5B5FFF", suffix: " TB", decimals: 1, status: "Healthy" },
-    { title: "Shared Files", value: 4260, icon: <Share2 size={20}/>, color: "#00D4FF", status: "Active" },
     { title: "AI Summaries", value: 12840, icon: <Sparkles size={20}/>, color: "#EC4899", status: "Generated" },
     { title: "Pending Signatures", value: 46, icon: <PenTool size={20}/>, color: "#F59E0B", status: "Action Required" },
-    { title: "Version History", value: 2810, icon: <History size={20}/>, color: "#7C3AED", status: "Tracked" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => (
         <motion.div
           key={i}

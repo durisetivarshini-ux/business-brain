@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Globe2, MapPin, Users, DollarSign, Box, Activity, ChevronRight, TrendingUp, Wifi, X, Building, Phone, Mail, User } from 'lucide-react';
+import { ModuleHeader } from '@/components/ui/ModuleHeader';
+import { SubPageTabs } from '@/components/ui/SubPageTabs';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +18,13 @@ export function BranchesPage() {
   const [hoveredBranch, setHoveredBranch] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'map', label: 'Command Map' },
+    { id: 'comparison', label: 'Comparison' }
+  ];
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,7 +73,7 @@ export function BranchesPage() {
       setIsSaving(false);
       setShowAddModal(false);
       toast.success('Branch added successfully!', { icon: '🏢' });
-      // Reset form
+      
       setFormData({
         name: '',
         country: '',
@@ -84,7 +93,7 @@ export function BranchesPage() {
   const totalRevenue = branchesList.reduce((sum, b) => sum + (b.revenue || 0), 0);
   const totalEmployees = branchesList.reduce((sum, b) => sum + (b.employees || 0), 0);
   const totalOrders = branchesList.reduce((sum, b) => sum + (b.orders || 0), 0);
-  const avgPerformance = 92; // Consistent with user screenshot
+  const avgPerformance = 92;
 
   const comparisonData = branchesList.map(b => ({
     branch: b.name.replace(' HQ', '').replace(' Hub', '').replace(' Operations', ''),
@@ -101,176 +110,90 @@ export function BranchesPage() {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10 h-full pb-10">
+    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 relative z-10 h-full pb-10">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00D4FF]/10 border border-[#00D4FF]/20 text-[#00D4FF] text-xs font-bold uppercase tracking-wider mb-3">
-            <Wifi size={12} className="animate-pulse" /> {branchesList.length} Locations Live
-          </div>
-          <h1 className="font-display text-3xl font-bold text-white tracking-tight mb-2 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-[#5B5FFF] flex items-center justify-center">
-              <Globe2 size={22} className="text-white" />
-            </div>
-            Global Command Center
-          </h1>
-          <p className="text-[#94A3B8] font-medium">Real-time operations, logistics, and performance across all branches.</p>
-        </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="self-start md:self-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#5B5FFF] text-white text-sm font-bold shadow-[0_0_15px_rgba(0,212,255,0.4)] hover:scale-[1.02] transition-transform"
-        >
-          + Add Branch
-        </button>
-      </div>
+      {/* Module Header */}
+      <ModuleHeader 
+        title="Global Command Center"
+        description="Real-time operations, logistics, and performance across all branches."
+        primaryAction={{
+          label: "Add Branch",
+          onClick: () => setShowAddModal(true)
+        }}
+        moduleName="Branches"
+      />
 
-      {/* Top KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {[
-          { label: 'Global Revenue', value: totalRevenue, prefix: '$', suffix: 'M', color: '#10B981' },
-          { label: 'Total Employees', value: totalEmployees, prefix: '', suffix: '', color: '#00D4FF' },
-          { label: 'Active Orders', value: totalOrders, prefix: '', suffix: '', color: '#5B5FFF' },
-          { label: 'Avg Performance', value: avgPerformance, prefix: '', suffix: '%', color: '#EC4899' },
-        ].map(kpi => (
-          <GlassCard key={kpi.label} className="p-5 border-white/5 bg-[#0B1120]/60 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-20 h-20 blur-[30px] opacity-10 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: kpi.color }} />
-            <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-2">{kpi.label}</p>
-            <p className="text-3xl font-display font-bold text-white" style={{ color: kpi.color }}>
-              {kpi.prefix}<CountUp end={kpi.value} decimals={kpi.value % 1 !== 0 ? 1 : 0} duration={1.5}/>{kpi.suffix}
-            </p>
-          </GlassCard>
-        ))}
-      </div>
+      {/* Subpage Tabs */}
+      <SubPageTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main 2-Column Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
-        {/* LEFT: Branch selector cards */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest px-1">Active Locations</h3>
-          {branchesList.map(branch => (
-            <motion.div
-              key={branch.id}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => setSelectedBranch(branch)}
-              className={`p-5 rounded-2xl cursor-pointer transition-all border ${
-                selectedBranch.id === branch.id
-                  ? 'border-[#5B5FFF] bg-gradient-to-r from-[#5B5FFF]/15 to-transparent shadow-[0_0_20px_rgba(91,95,255,0.2)]'
-                  : 'bg-white/5 border-white/5 hover:bg-white/8 hover:border-white/15'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{branch.icon || '🏢'}</span>
-                  <div>
-                    <h4 className="font-bold text-white text-sm leading-tight">{branch.name}</h4>
-                    <p className="text-xs text-[#94A3B8]">{branch.region}</p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: branch.color || '#10B981' }} />
-                    <span className="text-xs font-bold" style={{ color: branch.color || '#10B981' }}>{branch.status || 'Optimal'}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1 text-white font-bold text-lg">
-                  <DollarSign size={16} className="text-[#10B981]"/>{branch.revenue}M
-                </div>
-                <div className="flex items-center gap-1 text-xs text-[#10B981] font-bold bg-[#10B981]/10 px-2 py-1 rounded-md">
-                  <TrendingUp size={12}/> {branch.revTrend}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* RIGHT: Detail + Map */}
-        <div className="xl:col-span-2 flex flex-col gap-6">
+      {activeTab === 'dashboard' && (
+        <div className="flex flex-col gap-6">
           
-          {/* Interactive SVG World Map */}
-          <GlassCard className="w-full h-[320px] border-[#5B5FFF]/20 bg-[#050816] relative overflow-hidden p-0">
-            {/* Dark grid background */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:30px_30px]" />
-            
-            {/* Connection Lines */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-              {branchesList.map((b1, i) =>
-                branchesList.slice(i + 1).map(b2 => {
-                  const left1 = parseFloat(b1.mapLeft || '50%');
-                  const top1 = parseFloat(b1.mapTop || '50%');
-                  const left2 = parseFloat(b2.mapLeft || '50%');
-                  const top2 = parseFloat(b2.mapTop || '50%');
-                  return (
-                    <line
-                      key={`${b1.id}-${b2.id}`}
-                      x1={`${left1}%`} y1={`${top1}%`}
-                      x2={`${left2}%`} y2={`${top2}%`}
-                      stroke="#5B5FFF" strokeWidth="1" strokeOpacity="0.2" strokeDasharray="4 4"
-                    />
-                  );
-                })
-              )}
-            </svg>
+          {/* Top KPIs (Exactly 4) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Global Revenue', value: totalRevenue, prefix: '$', suffix: 'M', color: '#10B981' },
+              { label: 'Total Employees', value: totalEmployees, prefix: '', suffix: '', color: '#00D4FF' },
+              { label: 'Active Orders', value: totalOrders, prefix: '', suffix: '', color: '#5B5FFF' },
+              { label: 'Avg Performance', value: avgPerformance, prefix: '', suffix: '%', color: '#EC4899' },
+            ].map(kpi => (
+              <GlassCard key={kpi.label} className="p-5 border-white/5 bg-[#0B1120]/60 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-20 h-20 blur-[30px] opacity-10 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: kpi.color }} />
+                <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-2">{kpi.label}</p>
+                <p className="text-3xl font-display font-bold text-white" style={{ color: kpi.color }}>
+                  {kpi.prefix}<CountUp end={kpi.value} decimals={kpi.value % 1 !== 0 ? 1 : 0} duration={1.5}/>{kpi.suffix}
+                </p>
+              </GlassCard>
+            ))}
+          </div>
 
-            {/* Branch Nodes */}
-            {branchesList.map(branch => {
-              const left = branch.mapLeft || '50%';
-              const top = branch.mapTop || '50%';
-              return (
-                <div
+          {/* Location details split */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-4">
+              <h3 className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest px-1">Active Locations</h3>
+              {branchesList.map(branch => (
+                <motion.div
                   key={branch.id}
-                  className="absolute cursor-pointer group z-10"
-                  style={{ left, top, transform: 'translate(-50%, -50%)' }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => setSelectedBranch(branch)}
-                  onMouseEnter={() => setHoveredBranch(branch.id)}
-                  onMouseLeave={() => setHoveredBranch(null)}
+                  className={`p-5 rounded-2xl cursor-pointer transition-all border ${
+                    selectedBranch.id === branch.id
+                      ? 'border-[#5B5FFF] bg-gradient-to-r from-[#5B5FFF]/15 to-transparent shadow-[0_0_20px_rgba(91,95,255,0.2)]'
+                      : 'bg-white/5 border-white/5 hover:bg-white/8 hover:border-white/15'
+                  }`}
                 >
-                  <span className="relative flex h-5 w-5 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ backgroundColor: branch.color || '#10B981' }} />
-                    <span className={`relative inline-flex rounded-full h-5 w-5 border-2 transition-transform ${selectedBranch.id === branch.id ? 'scale-125' : ''}`}
-                      style={{ backgroundColor: branch.color || '#10B981', borderColor: 'rgba(255,255,255,0.3)' }} />
-                  </span>
-                  <AnimatePresence>
-                    {hoveredBranch === branch.id && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 5 }}
-                        className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#0B1120] border border-white/20 rounded-xl px-3 py-2 shadow-xl pointer-events-none"
-                      >
-                        <p className="text-white font-bold text-xs">{branch.name}</p>
-                        <p className="text-[#10B981] text-xs font-bold">${branch.revenue}M · {branch.employees} staff</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-
-            {/* Map Label */}
-            <div className="absolute top-4 left-4">
-              <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest flex items-center gap-2">
-                <Globe2 size={14} className="text-[#00D4FF]" /> Real-Time Operations Map
-              </p>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{branch.icon || '🏢'}</span>
+                      <div>
+                        <h4 className="font-bold text-white text-sm leading-tight">{branch.name}</h4>
+                        <p className="text-xs text-[#94A3B8]">{branch.region}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: branch.color || '#10B981' }} />
+                        <span className="text-xs font-bold" style={{ color: branch.color || '#10B981' }}>{branch.status || 'Optimal'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1 text-white font-bold text-lg">
+                      <DollarSign size={16} className="text-[#10B981]"/>{branch.revenue}M
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-[#10B981] font-bold bg-[#10B981]/10 px-2 py-1 rounded-md">
+                      <TrendingUp size={12}/> {branch.revTrend}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          </GlassCard>
 
-          {/* Branch Detail Card */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedBranch.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
+            <div className="xl:col-span-2 flex flex-col gap-6">
+              {/* Detailed branch visual */}
               <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
                 <div className="flex flex-col md:flex-row justify-between gap-6">
-                  
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <span className="text-3xl">{selectedBranch.icon || '🏢'}</span>
@@ -320,9 +243,6 @@ export function BranchesPage() {
                           style={{ backgroundColor: selectedBranch.inventory < 50 ? '#F59E0B' : '#10B981' }}
                         />
                       </div>
-                      {selectedBranch.inventory < 50 && (
-                        <p className="text-[10px] text-[#F59E0B] mt-1 font-bold">⚠ Resupply recommended within 48h</p>
-                      )}
                     </div>
 
                     <div>
@@ -339,16 +259,105 @@ export function BranchesPage() {
                       Full Branch Dashboard <ChevronRight size={16}/>
                     </button>
                   </div>
-
                 </div>
               </GlassCard>
-            </motion.div>
-          </AnimatePresence>
 
-          {/* Performance Comparison Chart */}
+              {/* Chart */}
+              <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
+                <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-5">Revenue by Branch (Monthly)</h3>
+                <div className="w-full h-[180px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={comparisonData} barSize={32} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="branch" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} dy={8} />
+                      <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `$${v}M`} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#050816', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                        formatter={(v) => [`$${v}M`, 'Revenue']}
+                      />
+                      <Bar dataKey="revenue" fill="url(#branchGrad)" radius={[8, 8, 0, 0]} />
+                      <defs>
+                        <linearGradient id="branchGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#00D4FF" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#5B5FFF" stopOpacity={0.7} />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </GlassCard>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'map' && (
+        <div className="flex flex-col gap-6">
+          <GlassCard className="w-full h-[500px] border-[#5B5FFF]/20 bg-[#050816] relative overflow-hidden p-0">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:30px_30px]" />
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+              {branchesList.map((b1, i) =>
+                branchesList.slice(i + 1).map(b2 => {
+                  const left1 = parseFloat(b1.mapLeft || '50%');
+                  const top1 = parseFloat(b1.mapTop || '50%');
+                  const left2 = parseFloat(b2.mapLeft || '50%');
+                  const top2 = parseFloat(b2.mapTop || '50%');
+                  return (
+                    <line
+                      key={`${b1.id}-${b2.id}`}
+                      x1={`${left1}%`} y1={`${top1}%`}
+                      x2={`${left2}%`} y2={`${top2}%`}
+                      stroke="#5B5FFF" strokeWidth="1" strokeOpacity="0.2" strokeDasharray="4 4"
+                    />
+                  );
+                })
+              )}
+            </svg>
+
+            {branchesList.map(branch => {
+              const left = branch.mapLeft || '50%';
+              const top = branch.mapTop || '50%';
+              return (
+                <div
+                  key={branch.id}
+                  className="absolute cursor-pointer group z-10"
+                  style={{ left, top, transform: 'translate(-50%, -50%)' }}
+                  onClick={() => setSelectedBranch(branch)}
+                  onMouseEnter={() => setHoveredBranch(branch.id)}
+                  onMouseLeave={() => setHoveredBranch(null)}
+                >
+                  <span className="relative flex h-6 w-6 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ backgroundColor: branch.color || '#10B981' }} />
+                    <span className={`relative inline-flex rounded-full h-6 w-6 border-2 transition-transform ${selectedBranch.id === branch.id ? 'scale-125' : ''}`}
+                      style={{ backgroundColor: branch.color || '#10B981', borderColor: 'rgba(255,255,255,0.3)' }} />
+                  </span>
+                  <AnimatePresence>
+                    {hoveredBranch === branch.id && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5 }}
+                        className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#0B1120] border border-white/20 rounded-xl px-3 py-2 shadow-xl pointer-events-none"
+                      >
+                        <p className="text-white font-bold text-xs">{branch.name}</p>
+                        <p className="text-[#10B981] text-xs font-bold">${branch.revenue}M · {branch.employees} staff</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'comparison' && (
+        <div className="flex flex-col gap-6">
           <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
-            <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-5">Revenue by Branch (Monthly)</h3>
-            <div className="w-full h-[180px]">
+            <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-5">Operational Benchmarks</h3>
+            <div className="w-full h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={comparisonData} barSize={32} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -357,22 +366,14 @@ export function BranchesPage() {
                   <Tooltip
                     contentStyle={{ backgroundColor: '#050816', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
                     itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                    formatter={(v) => [`$${v}M`, 'Revenue']}
                   />
                   <Bar dataKey="revenue" fill="url(#branchGrad)" radius={[8, 8, 0, 0]} />
-                  <defs>
-                    <linearGradient id="branchGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#00D4FF" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#5B5FFF" stopOpacity={0.7} />
-                    </linearGradient>
-                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </GlassCard>
-
         </div>
-      </div>
+      )}
 
       {/* Add Branch Modal */}
       <AnimatePresence>
@@ -462,83 +463,6 @@ export function BranchesPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1.5">Address *</label>
-                    <input
-                      type="text"
-                      name="address"
-                      required
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      placeholder="Street Address, Postcode"
-                      className="w-full px-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-[#5B5FFF]"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1.5">Branch Manager *</label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 text-white/40" size={14} />
-                        <input
-                          type="text"
-                          name="manager"
-                          required
-                          value={formData.manager}
-                          onChange={handleInputChange}
-                          placeholder="Manager Name"
-                          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-[#5B5FFF]"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1.5">Employees *</label>
-                      <div className="relative">
-                        <Users className="absolute left-3 top-2.5 text-white/40" size={14} />
-                        <input
-                          type="number"
-                          name="employees"
-                          required
-                          value={formData.employees}
-                          onChange={handleInputChange}
-                          placeholder="e.g. 50"
-                          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-[#5B5FFF]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1.5">Contact Number</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-2.5 text-white/40" size={14} />
-                        <input
-                          type="text"
-                          name="contact"
-                          value={formData.contact}
-                          onChange={handleInputChange}
-                          placeholder="Phone Number"
-                          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-[#5B5FFF]"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1.5">Email</label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 text-white/40" size={14} />
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          placeholder="email@company.com"
-                          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-[#5B5FFF]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="flex gap-3 justify-end pt-4 border-t border-white/5">
                     <button
                       type="button"
@@ -552,14 +476,7 @@ export function BranchesPage() {
                       disabled={isSaving}
                       className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#5B5FFF] text-white text-sm font-bold hover:scale-[1.02] transition-transform flex items-center gap-2"
                     >
-                      {isSaving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Save Branch'
-                      )}
+                      {isSaving ? 'Saving...' : 'Save Branch'}
                     </button>
                   </div>
                 </form>

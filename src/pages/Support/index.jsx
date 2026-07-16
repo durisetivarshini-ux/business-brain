@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { SupportDashboard } from './SupportDashboard';
-import { BookOpen, Plus, X, Search, FileText, Loader2, CheckCircle, Tag, MessageSquare } from 'lucide-react';
+import { ModuleHeader } from '@/components/ui/ModuleHeader';
+import { SubPageTabs } from '@/components/ui/SubPageTabs';
+import { SupportKPIGrid } from './SupportKPIGrid';
+import { AISupportAssistant } from './AISupportAssistant';
+import { TicketBoard } from './TicketBoard';
+import { SupportCharts } from './SupportCharts';
+import { BookOpen, Plus, X, Search, FileText, Loader2, CheckCircle, Tag, MessageSquare, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { GlassCard } from '@/components/ui/GlassCard';
 
 function KnowledgeBaseModal({ onClose }) {
   const [search, setSearch] = useState('');
@@ -14,7 +20,7 @@ function KnowledgeBaseModal({ onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl relative overflow-hidden">
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#5B5FFF]/10 to-transparent">
           <div className="flex items-center gap-3">
@@ -75,8 +81,8 @@ function NewTicketModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
-      <div className="w-full max-w-md rounded-2xl border border-[#00D4FF]/30 bg-[#0B1120] shadow-2xl p-8 relative overflow-hidden">
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative overflow-hidden">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white z-10"><X size={20} /></button>
         {done ? (
           <div className="flex flex-col items-center text-center relative z-10">
@@ -126,28 +132,145 @@ function NewTicketModal({ onClose }) {
 }
 
 export function SupportPage() {
-  const [modal, setModal] = useState(null); // 'kb' | 'ticket'
+  const [modal, setModal] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'tickets', label: 'Tickets' },
+    { id: 'kb', label: 'Knowledge Base' },
+    { id: 'analytics', label: 'Analytics' }
+  ];
+
+  const recentTickets = [
+    { id: 'TKT-8842', subject: 'Outlook Sync failing for Sales team', customer: 'Nexus Corp', priority: 'High', date: '16 Jul 2026', status: 'In Progress' },
+    { id: 'TKT-8835', subject: 'SSO login authentication error', customer: 'Alpha Labs', priority: 'Critical', date: '15 Jul 2026', status: 'In Progress' },
+    { id: 'TKT-8821', subject: 'Invoice download format issue', customer: 'Zeta Inc', priority: 'Medium', date: '14 Jul 2026', status: 'Resolved' },
+    { id: 'TKT-8810', subject: 'New team member onboarding access', customer: 'Global Ind', priority: 'Low', date: '12 Jul 2026', status: 'Resolved' },
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10">
+    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 relative z-10 pb-10">
       
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-white tracking-tight mb-2">Support Center</h1>
-          <p className="text-[#94A3B8] font-medium">AI-driven help desk and customer experience command center.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setModal('kb')} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-2">
-            <BookOpen size={14} /> Knowledge Base
-          </button>
-          <button onClick={() => setModal('ticket')} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF] text-white text-sm font-bold shadow-[0_0_15px_rgba(91,95,255,0.4)] transition-transform hover:scale-[1.02] flex items-center gap-2">
-            <Plus size={14} /> New Ticket
-          </button>
-        </div>
-      </div>
+      {/* Module Header */}
+      <ModuleHeader 
+        title="Support Center"
+        description="AI-driven help desk and customer experience command center."
+        primaryAction={{
+          label: "New Ticket",
+          onClick: () => setModal('ticket'),
+          icon: <Plus size={14} />
+        }}
+        secondaryAction={{
+          label: "Knowledge Base",
+          onClick: () => setModal('kb'),
+          icon: <BookOpen size={14} />
+        }}
+        moduleName="Support"
+      />
 
-      <SupportDashboard />
+      {/* Subpage Tabs */}
+      <SubPageTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {activeTab === 'dashboard' && (
+        <div className="flex flex-col gap-6">
+          {/* 1. 4 KPIs */}
+          <SupportKPIGrid />
+
+          {/* 2. AI Assistant */}
+          <AISupportAssistant />
+
+          {/* 3. Main Business Widget */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="flex flex-col bg-white/5 border border-white/5 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Helpdesk Tickets</h3>
+                <span className="text-xs text-[#94A3B8]">Live Update</span>
+              </div>
+              <TicketBoard />
+            </div>
+            <SupportCharts />
+          </div>
+
+          {/* 4. Recent Activity Table */}
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Tickets Log</h3>
+              <button onClick={() => setActiveTab('tickets')} className="text-xs text-[#00D4FF] hover:underline flex items-center gap-1 cursor-pointer">
+                View all tickets <ArrowRight size={12} />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-[#94A3B8]">
+                <thead className="text-xs text-white uppercase bg-white/5 rounded-lg">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">ID</th>
+                    <th className="px-4 py-3">Subject</th>
+                    <th className="px-4 py-3">Customer</th>
+                    <th className="px-4 py-3">Priority</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3 rounded-r-lg">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentTickets.map((tkt, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs text-[#00D4FF]">{tkt.id}</td>
+                      <td className="px-4 py-3 font-bold text-white flex items-center gap-2">
+                        <MessageSquare size={14} className="text-[#5B5FFF]" />
+                        <span>{tkt.subject}</span>
+                      </td>
+                      <td className="px-4 py-3 text-white">{tkt.customer}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          tkt.priority === 'Critical' || tkt.priority === 'High' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                          tkt.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                          'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
+                        }`}>
+                          {tkt.priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{tkt.date}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          tkt.status === 'Resolved' ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30' :
+                          'bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30'
+                        }`}>
+                          {tkt.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'tickets' && (
+        <div className="flex flex-col gap-6">
+          <TicketBoard />
+        </div>
+      )}
+
+      {activeTab === 'kb' && (
+        <div className="flex flex-col gap-6">
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 max-w-xl mx-auto text-center">
+            <h2 className="text-xl font-bold text-white mb-2">Internal SOPs & Knowledge Base</h2>
+            <p className="text-sm text-[#94A3B8] mb-6">Search user guides and release docs assignment guides.</p>
+            <button onClick={() => setModal('kb')} className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF] text-white font-bold hover:scale-[1.02] transition-all cursor-pointer">
+              Launch KB Search Engine
+            </button>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="flex flex-col gap-6">
+          <SupportCharts />
+        </div>
+      )}
 
       {modal === 'kb' && <KnowledgeBaseModal onClose={() => setModal(null)} />}
       {modal === 'ticket' && <NewTicketModal onClose={() => setModal(null)} />}

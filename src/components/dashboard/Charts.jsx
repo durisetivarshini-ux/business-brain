@@ -1,6 +1,7 @@
 import React from 'react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { GlassCard } from '../ui/GlassCard';
+import { useNavigate } from 'react-router-dom';
 
 const data = [
   { name: 'Jan', revenue: 4000, expenses: 2400 },
@@ -31,14 +32,21 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export function RevenueChart() {
+  const navigate = useNavigate();
   return (
-    <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 h-[400px] flex flex-col">
+    <GlassCard 
+      onClick={() => navigate('/app/finance')} 
+      className="p-6 border-white/5 bg-[#0B1120]/60 h-[400px] flex flex-col cursor-pointer hover:border-[#5B5FFF]/30 transition-all"
+    >
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="font-bold text-lg text-white">Revenue Overview</h3>
           <p className="text-sm text-[#94A3B8]">Compared to last year</p>
         </div>
-        <select className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm font-medium text-white outline-none">
+        <select 
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm font-medium text-white outline-none"
+        >
           <option>This Year</option>
           <option>Last Year</option>
         </select>
@@ -83,8 +91,12 @@ const salesData = [
 ];
 
 export function SalesChart() {
+  const navigate = useNavigate();
   return (
-    <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 h-[300px] flex flex-col">
+    <GlassCard 
+      onClick={() => navigate('/app/sales')} 
+      className="p-6 border-white/5 bg-[#0B1120]/60 h-[300px] flex flex-col cursor-pointer hover:border-[#00D4FF]/30 transition-all"
+    >
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold text-lg text-white">Weekly Sales</h3>
       </div>
@@ -112,8 +124,12 @@ const customerData = [
 ];
 
 export function CustomerChart() {
+  const navigate = useNavigate();
   return (
-    <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 h-[300px] flex flex-col">
+    <GlassCard 
+      onClick={() => navigate('/app/crm')} 
+      className="p-6 border-white/5 bg-[#0B1120]/60 h-[300px] flex flex-col cursor-pointer hover:border-[#7C3AED]/30 transition-all"
+    >
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold text-lg text-white">Customer Segments</h3>
       </div>

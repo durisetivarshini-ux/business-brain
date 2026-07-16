@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { MarketingDashboard } from './MarketingDashboard';
+import { ModuleHeader } from '@/components/ui/ModuleHeader';
+import { SubPageTabs } from '@/components/ui/SubPageTabs';
+import { MarketingKPIGrid } from './MarketingKPIGrid';
+import { AIMarketingAssistant } from './AIMarketingAssistant';
+import { MarketingCharts } from './MarketingCharts';
+import { AIContentStudio } from './AIContentStudio';
 import toast from 'react-hot-toast';
-import { X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Calendar, ChevronLeft, ChevronRight, Megaphone, ArrowRight } from 'lucide-react';
+import { GlassCard } from '@/components/ui/GlassCard';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -28,7 +34,7 @@ function ContentCalendarModal({ onClose }) {
   const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
         
@@ -99,7 +105,7 @@ function NewCampaignModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5,8,22,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0B1120] shadow-2xl p-8 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-[#94A3B8] hover:text-white transition-colors"><X size={20} /></button>
         <h2 className="text-xl font-bold text-white mb-1">Launch New Campaign</h2>
@@ -138,36 +144,128 @@ function NewCampaignModal({ onClose }) {
 export function MarketingPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showNewCampaign, setShowNewCampaign] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'campaigns', label: 'Campaigns' },
+    { id: 'content', label: 'Content Studio' },
+    { id: 'analytics', label: 'Analytics' }
+  ];
+
+  const recentCampaigns = [
+    { name: 'Q3 Launch Email Sequence', channel: 'Email', budget: '₹1,50,000', leads: '1,240', status: 'Running' },
+    { name: 'Instagram Video Reels Promo', channel: 'Instagram', budget: '₹80,000', leads: '850', status: 'Running' },
+    { name: 'LinkedIn Enterprise Outreach', channel: 'LinkedIn', budget: '₹2,50,000', leads: '420', status: 'Planned' },
+    { name: 'AI Product Guide Blog SEO', channel: 'Blog', budget: '₹30,000', leads: '380', status: 'Completed' },
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8 relative z-10">
+    <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 relative z-10 pb-10">
       
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-white tracking-tight mb-2">Marketing Studio</h1>
-          <p className="text-[#94A3B8] font-medium">Orchestrate campaigns and content across all channels using AI.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowCalendar(true)}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
-          >
-            Content Calendar
-          </button>
-          <button
-            onClick={() => setShowNewCampaign(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] text-white text-sm font-bold shadow-[0_0_15px_rgba(236,72,153,0.4)] transition-transform hover:scale-[1.02]"
-          >
-            + New Campaign
-          </button>
-        </div>
-      </div>
+      {/* Module Header */}
+      <ModuleHeader 
+        title="Marketing Studio"
+        description="Orchestrate campaigns and content across all channels using AI."
+        primaryAction={{
+          label: "New Campaign",
+          onClick: () => setShowNewCampaign(true)
+        }}
+        secondaryAction={{
+          label: "Content Calendar",
+          onClick: () => setShowCalendar(true)
+        }}
+        moduleName="Marketing"
+      />
 
-      {/* Main Marketing Dashboard Layout */}
-      <MarketingDashboard />
+      {/* Subpage Tabs */}
+      <SubPageTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Modals */}
+      {activeTab === 'dashboard' && (
+        <div className="flex flex-col gap-6">
+          {/* 1. 4 KPIs */}
+          <MarketingKPIGrid />
+
+          {/* 2. AI Assistant */}
+          <AIMarketingAssistant />
+
+          {/* 3. Main Business Widget */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AIContentStudio />
+            <MarketingCharts />
+          </div>
+
+          {/* 4. Recent Activity Table */}
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Campaigns</h3>
+              <button onClick={() => setShowCalendar(true)} className="text-xs text-[#00D4FF] hover:underline flex items-center gap-1 cursor-pointer">
+                Open Calendar <ArrowRight size={12} />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-[#94A3B8]">
+                <thead className="text-xs text-white uppercase bg-white/5 rounded-lg">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">Campaign Name</th>
+                    <th className="px-4 py-3">Channel</th>
+                    <th className="px-4 py-3">Budget</th>
+                    <th className="px-4 py-3">Leads Generated</th>
+                    <th className="px-4 py-3 rounded-r-lg">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentCampaigns.map((camp, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 font-bold text-white flex items-center gap-2">
+                        <Megaphone size={14} className="text-[#EC4899]" />
+                        <span>{camp.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-white">{camp.channel}</td>
+                      <td className="px-4 py-3 text-white font-semibold">{camp.budget}</td>
+                      <td className="px-4 py-3 text-[#10B981] font-semibold">{camp.leads}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          camp.status === 'Running' ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30' :
+                          camp.status === 'Planned' ? 'bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30' :
+                          'bg-[#94A3B8]/20 text-[#94A3B8] border border-white/10'
+                        }`}>
+                          {camp.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'campaigns' && (
+        <div className="flex flex-col gap-6">
+          <GlassCard className="p-6 border-white/5 bg-[#0B1120]/60 max-w-xl mx-auto text-center">
+            <h2 className="text-xl font-bold text-white mb-2">Campaign Content Calendar</h2>
+            <p className="text-sm text-[#94A3B8] mb-6">View scheduled social posts, email sequences, and articles.</p>
+            <button onClick={() => setShowCalendar(true)} className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] text-white font-bold hover:scale-[1.02] transition-all cursor-pointer">
+              Open Interactive Calendar
+            </button>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'content' && (
+        <div className="flex flex-col gap-6">
+          <AIContentStudio />
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="flex flex-col gap-6">
+          <MarketingCharts />
+        </div>
+      )}
+
       {showCalendar && <ContentCalendarModal onClose={() => setShowCalendar(false)} />}
       {showNewCampaign && <NewCampaignModal onClose={() => setShowNewCampaign(false)} />}
     </div>

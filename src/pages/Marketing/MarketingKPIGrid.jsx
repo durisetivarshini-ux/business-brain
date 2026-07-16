@@ -1,21 +1,19 @@
 import React from 'react';
 import { SafeCountUp as CountUp } from '@/components/ui/SafeCountUp';
 import { motion } from 'framer-motion';
-import { Megaphone, MailOpen, Share2, Users, UserPlus, DollarSign } from 'lucide-react';
+import { Megaphone, Users, UserPlus, DollarSign } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 
 export function MarketingKPIGrid() {
   const stats = [
     { title: "Active Campaigns", value: 84, icon: <Megaphone size={20}/>, color: "#EC4899", status: "Running" },
-    { title: "Email Open Rate", value: 42, icon: <MailOpen size={20}/>, color: "#00D4FF", suffix: "%", status: "+4%" },
-    { title: "Social Reach", value: 8.4, icon: <Share2 size={20}/>, color: "#7C3AED", suffix: " M", decimals: 1, status: "High" },
+    { title: "Marketing ROI", value: 386, icon: <DollarSign size={20}/>, color: "#F59E0B", suffix: "%", status: "Excellent" },
     { title: "Website Visitors", value: 2.1, icon: <Users size={20}/>, color: "#5B5FFF", suffix: " M", decimals: 1, status: "Active" },
     { title: "Leads Generated", value: 18500, icon: <UserPlus size={20}/>, color: "#10B981", status: "Processed" },
-    { title: "Marketing ROI", value: 386, icon: <DollarSign size={20}/>, color: "#F59E0B", suffix: "%", status: "Excellent" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => (
         <motion.div
           key={i}
@@ -34,7 +32,7 @@ export function MarketingKPIGrid() {
               >
                 {stat.icon}
               </div>
-              <span className={`text-[10px] font-bold px-2 py-1 rounded-md bg-white/5 ${stat.status === 'Excellent' || stat.status.includes('+') ? 'text-[#10B981]' : 'text-[#94A3B8]'}`}>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded-md bg-white/5 ${stat.status === 'Excellent' ? 'text-[#10B981]' : 'text-[#94A3B8]'}`}>
                 {stat.status}
               </span>
             </div>

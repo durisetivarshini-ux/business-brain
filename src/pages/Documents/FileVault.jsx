@@ -4,8 +4,12 @@ import { Folder, FileText, FileSpreadsheet, FileIcon, Image as ImageIcon, MoreVe
 import { GlassCard } from '../../components/ui/GlassCard';
 import toast from 'react-hot-toast';
 
+import { useWorkspace } from '../../context/WorkspaceContext';
+
 export function FileVault() {
   const [starred, setStarred] = useState({});
+  const { workspaceConfig: config } = useWorkspace();
+  const industry = config?.customIndustry || 'Enterprise';
 
   const toggleStar = (index) => {
     setStarred(prev => {
@@ -19,12 +23,61 @@ export function FileVault() {
   const handleOpenFolder = (name) => toast.success(`Opened folder: ${name}`);
   const handleOpenFile = (name) => toast.success(`Opened file: ${name}`);
 
-  const folders = [
-    { name: "Finance & Legal", files: 1240, color: "#10B981" },
-    { name: "HR & Onboarding", files: 856, color: "#EC4899" },
-    { name: "Sales Contracts", files: 2150, color: "#00D4FF" },
-    { name: "Marketing Assets", files: 4320, color: "#7C3AED" },
-  ];
+  const getIndustryFolders = () => {
+    switch(industry) {
+      case 'Restaurant':
+        return [
+          { name: "Recipes & Menus", files: 120, color: "#10B981" },
+          { name: "Kitchen Invoices", files: 432, color: "#EC4899" },
+          { name: "Supplier Contracts", files: 58, color: "#00D4FF" },
+          { name: "Staff Schedules", files: 240, color: "#7C3AED" },
+        ];
+      case 'Hospital':
+        return [
+          { name: "Medical Records", files: 3410, color: "#10B981" },
+          { name: "Insurance Policies", files: 1250, color: "#EC4899" },
+          { name: "Laboratory Reports", files: 2450, color: "#00D4FF" },
+          { name: "Staff Rosters", files: 856, color: "#7C3AED" },
+        ];
+      case 'School':
+        return [
+          { name: "Student Certificates", files: 1850, color: "#10B981" },
+          { name: "Attendance Logs", files: 3420, color: "#EC4899" },
+          { name: "Curriculum Plans", files: 145, color: "#00D4FF" },
+          { name: "Fee Receipts", files: 2150, color: "#7C3AED" },
+        ];
+      case 'Software Company':
+        return [
+          { name: "Client MSA Contracts", files: 84, color: "#10B981" },
+          { name: "Project Briefs", files: 512, color: "#EC4899" },
+          { name: "Technical Docs", files: 1420, color: "#00D4FF" },
+          { name: "Developer Logs", files: 890, color: "#7C3AED" },
+        ];
+      case 'Retail':
+        return [
+          { name: "Invoices & Receipts", files: 4120, color: "#10B981" },
+          { name: "Products Catalog", files: 856, color: "#EC4899" },
+          { name: "Supplier POs", files: 340, color: "#00D4FF" },
+          { name: "Payroll Records", files: 124, color: "#7C3AED" },
+        ];
+      case 'Manufacturing':
+        return [
+          { name: "Quality Control Certs", files: 412, color: "#10B981" },
+          { name: "Warehouse Manifests", files: 856, color: "#EC4899" },
+          { name: "Raw Materials Logs", files: 240, color: "#00D4FF" },
+          { name: "Supplier Invoices", files: 1250, color: "#7C3AED" },
+        ];
+      default:
+        return [
+          { name: "Finance & Legal", files: 1240, color: "#10B981" },
+          { name: "HR & Onboarding", files: 856, color: "#EC4899" },
+          { name: "Sales Contracts", files: 2150, color: "#00D4FF" },
+          { name: "Marketing Assets", files: 4320, color: "#7C3AED" },
+        ];
+    }
+  };
+
+  const folders = getIndustryFolders();
 
   const recentFiles = [
     { name: "Q3_Financial_Audit.pdf", type: "pdf", size: "2.4 MB", date: "2 hrs ago", author: "Sarah Jenkins" },
