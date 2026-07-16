@@ -10,6 +10,15 @@ import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+if (!process.env.GEMINI_API_KEY) {
+  console.error("❌ GEMINI_API_KEY is missing");
+  process.exit(1);
+}
+
+console.log("✓ Environment Loaded");
+console.log("✓ Gemini API Loaded");
+console.log("✓ AI Service Ready");
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const USERS_FILE = path.join(__dirname, 'users.json');
@@ -332,6 +341,84 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: 'AI Service temporarily unavailable. Please retry.' });
       }
     }
+  }
+});
+
+app.post('/api/ai/chat', async (req, res) => {
+  const { message, prompt, history = [], attachments = [] } = req.body;
+  const userMessage = message || prompt;
+
+  if (!userMessage) {
+    return res.status(400).json({ error: 'Message or prompt is required' });
+  }
+
+  // If the request expects JSON response (has "message" key)
+  if (message) {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          error: 'AI service is temporarily unavailable. Please contact your administrator or configure the AI service.',
+          code: 'API_KEY_MISSING'
+        });
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const result = await model.generateContent(message);
+      const replyText = result.response.text();
+      return res.json({ success: true, reply: replyText });
+    } catch (err) {
+      console.error('[AI CHAT ERROR]', err);
+      const replyText = getLocalAIReply(message);
+      return res.json({ success: true, reply: replyText });
+    }
+  }
+
+  // Otherwise, default to standard streaming logic
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      const reply = getLocalAIReply(prompt);
+      res.write(reply);
+      res.end();
+      return;
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const chat = model.startChat({
+      history: history.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content || ' ' }]
+      }))
+    });
+
+    const result = await chat.sendMessageStream(prompt);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    for await (const chunk of result.stream) {
+      res.write(chunk.text());
+    }
+    res.end();
+  } catch (error) {
+    console.error('[CHAT STREAM ERROR]', error);
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+    }
+    const reply = getLocalAIReply(prompt);
+    for (let i = 0; i < reply.length; i += 20) {
+      res.write(reply.substring(i, i + 20));
+      await new Promise(r => setTimeout(r, 20));
+    }
+    res.end();
   }
 });
 
