@@ -251,6 +251,54 @@ function HistoryPanel({ history, onLoadSession, onDeleteSession, onPinSession, o
   );
 }
 
+export function cleanAIReply(text = "") {
+  let cleaned = text.trim();
+
+  // Strip possible markdown json formatting wrapper
+  if (cleaned.startsWith("```json") && cleaned.endsWith("```")) {
+    cleaned = cleaned.substring(7, cleaned.length - 3).trim();
+  } else if (cleaned.startsWith("```") && cleaned.endsWith("```")) {
+    cleaned = cleaned.substring(3, cleaned.length - 3).trim();
+  }
+
+  // If it's a complete JSON block
+  if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.reply) return parsed.reply;
+        if (parsed.message) return parsed.message;
+      }
+    } catch (e) {
+      // Not valid JSON yet (e.g. still streaming)
+    }
+  }
+
+  // Handle streaming JSON patterns dynamically (e.g. starts with {"success":true,"reply":" or {"reply":" )
+  const jsonPrefixRegex = /^\{\s*"(success|reply|message)"\s*:\s*(true|"[^"]*")\s*,\s*"(reply|message)"\s*:\s*"/i;
+  const match = cleaned.match(jsonPrefixRegex);
+  if (match) {
+    // Strip the JSON structure prefix
+    cleaned = cleaned.substring(match[0].length);
+    // If it ends with the JSON suffix like "}, strip it
+    if (cleaned.endsWith('"}')) {
+      cleaned = cleaned.slice(0, -2);
+    } else if (cleaned.endsWith('"} }')) {
+      cleaned = cleaned.slice(0, -4);
+    } else if (cleaned.endsWith('"')) {
+      cleaned = cleaned.slice(0, -1);
+    }
+    // Unescape common JSON characters
+    cleaned = cleaned
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'")
+      .replace(/\\t/g, '\t');
+  }
+
+  return cleaned;
+}
+
 // ── Main Copilot Page ─────────────────────────────────────────────────
 export function CopilotPage() {
   const [tab, setTab] = useState('chat');
@@ -418,8 +466,9 @@ export function CopilotPage() {
       for await (const chunk of stream) {
         setThinkingLabel(""); // Clear thinking indicator on first chunk
         fullContent += chunk.text();
+        const cleanedContent = cleanAIReply(fullContent);
         setMessages(prev => prev.map(m => 
-          m.id === aiMessageId ? { ...m, content: fullContent } : m
+          m.id === aiMessageId ? { ...m, content: cleanedContent } : m
         ));
       }
       setIsTyping(false);
