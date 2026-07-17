@@ -12,7 +12,6 @@ import { LandingPage } from "@/pages/Landing";
 import { DashboardPage } from "@/pages/Dashboard";
 import { CopilotPage } from "@/pages/AICopilot";
 import { AnalyticsPage } from "@/pages/Analytics";
-import { AutomationPage } from "@/pages/Automation";
 import { CRMPage } from "@/pages/CRM";
 import { DocumentsPage } from "@/pages/Documents";
 import { OnboardingPage } from "@/pages/Onboarding";
@@ -91,7 +90,6 @@ export function AppRoutes() {
               <Route path="ai-copilot" element={<CopilotPage />} />
               <Route path="copilot" element={<CopilotPage />} />
               <Route path="advisor" element={<AdvisorPage />} />
-              <Route path="automation" element={<AutomationPage />} />
               <Route path="meetings" element={<MeetingsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               

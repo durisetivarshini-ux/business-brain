@@ -10,7 +10,6 @@ function getActiveModuleFromPath(path) {
   if (path.includes('/support')) return 'Support';
   if (path.includes('/documents')) return 'Documents';
   if (path.includes('/analytics')) return 'Analytics';
-  if (path.includes('/automation')) return 'Automation';
   if (path.includes('/sales')) return 'Sales';
   if (path.includes('/goals')) return 'Goals';
   if (path.includes('/risks')) return 'Risks';

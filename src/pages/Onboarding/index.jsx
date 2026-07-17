@@ -65,7 +65,7 @@ export function OnboardingPage() {
     departments: ['Sales', 'Marketing', 'Finance', 'HR', 'Support', 'Inventory', 'Documents'],
 
     // Step 3: AI Assistants
-    aiAssistants: ['AI Copilot', 'Business Advisor', 'Automation', 'Meeting AI'],
+    aiAssistants: ['AI Copilot', 'Business Advisor', 'Meeting AI'],
 
     // Step 4: Business Goals
     goals: ['Increase Revenue', 'Improve Productivity', 'Digital Transformation'],
@@ -100,14 +100,14 @@ export function OnboardingPage() {
 
   const aiOptions = [
     'AI Copilot', 'Business Advisor', 'Meeting AI', 'Marketing AI', 'Sales AI', 
-    'Finance AI', 'HR AI', 'Support AI', 'Document AI', 'Automation AI', 
+    'Finance AI', 'HR AI', 'Support AI', 'Document AI', 
     'Forecast AI', 'Risk AI', 'Compliance AI'
   ];
 
   const goalOptions = [
     'Increase Revenue', 'Reduce Costs', 'Hire Employees', 'Expand Business', 
     'Improve Customer Support', 'Increase Sales', 'Marketing Growth', 
-    'Inventory Optimization', 'Financial Planning', 'Automation', 
+    'Inventory Optimization', 'Financial Planning', 
     'Digital Transformation', 'Compliance', 'Sustainability'
   ];
 

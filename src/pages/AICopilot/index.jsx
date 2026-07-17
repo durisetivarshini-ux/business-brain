@@ -437,8 +437,6 @@ export function CopilotPage() {
       setThinkingLabel("Synthesizing HR workforce sentiment...");
     } else if (p.includes('document') || p.includes('ocr') || p.includes('pdf')) {
       setThinkingLabel("Analyzing document layout & compliance...");
-    } else if (p.includes('automation') || p.includes('workflow')) {
-      setThinkingLabel("Reading automation graph schema...");
     } else if (p.includes('meeting') || p.includes('schedule') || p.includes('calendar')) {
       setThinkingLabel("Querying team availability calendar...");
     } else {

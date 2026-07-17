@@ -150,9 +150,6 @@ function getSystemInstruction(context = {}) {
     case 'Analytics':
       moduleInstruction = "You are a Principal BI Analyst and Data Scientist. Recommend metrics models, interpret dashboard trendlines, forecast future target values, and suggest KPI dashboard optimizations.";
       break;
-    case 'Automation':
-      moduleInstruction = "You are a Lead Workflow Automation Architect. Help construct triggers, sequential actions, webhook integrations, and automated pipeline rules.";
-      break;
     case 'Meetings':
       moduleInstruction = "You are an Executive Assistant and Meeting coordinator. Help schedule, draft sync agendas, organize attendees list, and track action items.";
       break;

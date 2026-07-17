@@ -36,7 +36,6 @@ export function Sidebar({ collapsed, setCollapsed }) {
     items: [
       { name: 'AI Copilot', icon: <Bot size={18} />, path: '/app/ai-copilot' },
       { name: 'Business Advisor', icon: <Zap size={18} />, path: '/app/advisor' },
-      { name: 'Automation', icon: <Workflow size={18} />, path: '/app/automation' },
       { name: 'Meeting AI', icon: <Video size={18} />, path: '/app/meetings' }
     ]
   });
