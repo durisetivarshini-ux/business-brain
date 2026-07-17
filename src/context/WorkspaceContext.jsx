@@ -356,6 +356,24 @@ export function WorkspaceProvider({ children }) {
     });
   };
 
+  const updateRecord = (type, id, updatedFields) => {
+    const list = businessData[type] || [];
+    const updatedList = list.map(item => item.id === id ? { ...item, ...updatedFields } : item);
+    updateBusinessData({
+      ...businessData,
+      [type]: updatedList
+    });
+  };
+
+  const deleteRecord = (type, id) => {
+    const list = businessData[type] || [];
+    const updatedList = list.filter(item => item.id !== id);
+    updateBusinessData({
+      ...businessData,
+      [type]: updatedList
+    });
+  };
+
   const importRecords = (type, list) => {
     const existing = businessData[type] || [];
     const updatedList = [...existing, ...list.map((item, idx) => ({ id: Date.now() + idx, ...item }))];
@@ -388,6 +406,8 @@ export function WorkspaceProvider({ children }) {
     populateSandboxData,
     clearBusinessData,
     addRecord,
+    updateRecord,
+    deleteRecord,
     importRecords
   };
 

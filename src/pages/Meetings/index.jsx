@@ -12,7 +12,7 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/hooks/useAuth';
 
 export function MeetingsPage() {
-  const { workspaceConfig: config, businessData, addRecord, currencySymbol } = useWorkspace();
+  const { workspaceConfig: config, businessData, addRecord, updateRecord, currencySymbol } = useWorkspace();
   const { user } = useAuth();
   const ownerEmail = user?.email || 'owner@businessbrain.ai';
 
@@ -121,7 +121,14 @@ export function MeetingsPage() {
   useEffect(() => {
     setMeetings(rawMeetings);
     if (rawMeetings && rawMeetings.length > 0) {
-      if (!selectedMeeting || !rawMeetings.some(m => m.id === selectedMeeting.id)) {
+      if (selectedMeeting) {
+        const latestMatch = rawMeetings.find(m => m.id === selectedMeeting.id);
+        if (latestMatch) {
+          setSelectedMeeting(latestMatch);
+        } else {
+          setSelectedMeeting(rawMeetings[0]);
+        }
+      } else {
         setSelectedMeeting(rawMeetings[0]);
       }
     } else {
@@ -175,27 +182,8 @@ export function MeetingsPage() {
     const confirmCancel = window.confirm(`Are you sure you want to cancel the meeting "${meeting.title}"? This will purge all scheduled reminders.`);
     if (!confirmCancel) return;
 
-    const userId = 'guest';
-    const companyDataRaw = localStorage.getItem(`company_business_data_${userId}`);
-    if (companyDataRaw) {
-      try {
-        const parsed = JSON.parse(companyDataRaw);
-        const updatedMeetings = (parsed.meetings || []).map(m => {
-          if (m.id === meeting.id) {
-            return { ...m, status: 'Missed' };
-          }
-          return m;
-        });
-        
-        localStorage.setItem(`company_business_data_${userId}`, JSON.stringify({
-          ...parsed,
-          meetings: updatedMeetings
-        }));
-        
-        setMeetings(updatedMeetings);
-        setSelectedMeeting(prev => prev?.id === meeting.id ? { ...prev, status: 'Missed' } : prev);
-      } catch (e) {}
-    }
+    updateRecord('meetings', meeting.id, { status: 'Missed' });
+    setSelectedMeeting(prev => prev?.id === meeting.id ? { ...prev, status: 'Missed' } : prev);
 
     // Call backend to clear scheduled timeouts
     fetch('/api/meetings/cancel', {
@@ -232,46 +220,32 @@ export function MeetingsPage() {
 
     if (editingMeetingId) {
       // Rescheduling flow
-      const userId = 'guest';
-      let updatedM = null;
-      const companyDataRaw = localStorage.getItem(`company_business_data_${userId}`);
-      if (companyDataRaw) {
-        try {
-          const parsed = JSON.parse(companyDataRaw);
-          const updatedMeetings = (parsed.meetings || []).map(m => {
-            if (m.id === editingMeetingId) {
-              return {
-                ...m,
-                title: formData.title,
-                date: formData.date,
-                time: formData.time,
-                duration: formData.duration,
-                priority: formData.priority,
-                type: formData.type,
-                participants: formData.participants,
-                agenda: formData.agenda,
-                link: formData.link,
-                syncedWith: [
-                  ...(formData.syncGoogle ? ['Google Calendar'] : []),
-                  ...(formData.syncOutlook ? ['Microsoft Outlook'] : [])
-                ],
-                reminders: formData.reminders,
-                status: 'Upcoming'
-              };
-            }
-            return m;
-          });
-          
-          localStorage.setItem(`company_business_data_${userId}`, JSON.stringify({
-            ...parsed,
-            meetings: updatedMeetings
-          }));
-          
-          setMeetings(updatedMeetings);
-          updatedM = updatedMeetings.find(m => m.id === editingMeetingId);
-          setSelectedMeeting(updatedM);
-        } catch (err) {}
-      }
+      const updatedFields = {
+        title: formData.title,
+        date: formData.date,
+        time: formData.time,
+        duration: formData.duration,
+        priority: formData.priority,
+        type: formData.type,
+        participants: formData.participants,
+        agenda: formData.agenda,
+        link: formData.link,
+        syncedWith: [
+          ...(formData.syncGoogle ? ['Google Calendar'] : []),
+          ...(formData.syncOutlook ? ['Microsoft Outlook'] : [])
+        ],
+        reminders: formData.reminders,
+        status: 'Upcoming'
+      };
+
+      updateRecord('meetings', editingMeetingId, updatedFields);
+      
+      const updatedM = {
+        id: editingMeetingId,
+        ...updatedFields
+      };
+      
+      setSelectedMeeting(updatedM);
       
       setShowScheduler(false);
       setEditingMeetingId(null);
@@ -391,7 +365,7 @@ export function MeetingsPage() {
     }, 1000);
 
     // Update status in local list
-    setMeetings(prev => prev.map(m => m.id === meeting.id ? { ...m, status: 'In Progress' } : m));
+    updateRecord('meetings', meeting.id, { status: 'In Progress' });
     addN8nLog(`n8n Event: Meeting started. Updating status of ID ${meeting.id} to "In Progress".`, 'system');
   };
 
@@ -407,7 +381,7 @@ export function MeetingsPage() {
       generateAIReview(activeMeetingSim);
     } else {
       // Revert status to completed without notes
-      setMeetings(prev => prev.map(m => m.id === activeMeetingSim.id ? { ...m, status: 'Completed' } : m));
+      updateRecord('meetings', activeMeetingSim.id, { status: 'Completed' });
       setActiveMeetingSim(null);
     }
   };
@@ -434,17 +408,11 @@ export function MeetingsPage() {
 
       const notes = { summary, decisions, tasks };
 
-      setMeetings(prev => prev.map(m => {
-        if (m.id === meeting.id) {
-          return {
-            ...m,
-            status: 'Completed',
-            notes,
-            tasksCreated: true
-          };
-        }
-        return m;
-      }));
+      updateRecord('meetings', meeting.id, {
+        status: 'Completed',
+        notes,
+        tasksCreated: true
+      });
 
       // Trigger automatic task creations inside workspace transactions/tasks
       tasks.forEach(t => {
@@ -456,25 +424,6 @@ export function MeetingsPage() {
           type: 'task'
         });
       });
-
-      // Save meeting update to Local Storage
-      const userId = 'guest';
-      const companyDataRaw = localStorage.getItem(`company_business_data_${userId}`);
-      if (companyDataRaw) {
-        try {
-          const parsed = JSON.parse(companyDataRaw);
-          const updatedMeetings = (parsed.meetings || []).map(m => {
-            if (m.title === meeting.title) {
-              return { ...m, status: 'Completed', notes, tasksCreated: true };
-            }
-            return m;
-          });
-          localStorage.setItem(`company_business_data_${userId}`, JSON.stringify({
-            ...parsed,
-            meetings: updatedMeetings
-          }));
-        } catch (e) {}
-      }
 
       toast.dismiss('ai-summary');
       toast.success('AI Meeting Briefing & Tasks Synchronized!', { icon: '✅' });
