@@ -197,6 +197,20 @@ export function MeetingsPage() {
       } catch (e) {}
     }
 
+    // Call backend to clear scheduled timeouts
+    fetch('/api/meetings/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meetingId: meeting.id })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          addN8nLog(`[n8n Event] Canceled scheduled SMTP notifications for ID ${meeting.id} in backend.`, 'success');
+        }
+      })
+      .catch(err => console.error('[SMTP CANCEL FETCH ERROR]', err));
+
     toast.success('Meeting cancelled and scheduled reminders purged!');
     
     // Trigger Cancel logs
@@ -219,6 +233,7 @@ export function MeetingsPage() {
     if (editingMeetingId) {
       // Rescheduling flow
       const userId = 'guest';
+      let updatedM = null;
       const companyDataRaw = localStorage.getItem(`company_business_data_${userId}`);
       if (companyDataRaw) {
         try {
@@ -253,7 +268,7 @@ export function MeetingsPage() {
           }));
           
           setMeetings(updatedMeetings);
-          const updatedM = updatedMeetings.find(m => m.id === editingMeetingId);
+          updatedM = updatedMeetings.find(m => m.id === editingMeetingId);
           setSelectedMeeting(updatedM);
         } catch (err) {}
       }
@@ -262,6 +277,22 @@ export function MeetingsPage() {
       setEditingMeetingId(null);
       toast.success('Meeting rescheduled and n8n reminder jobs updated!');
       
+      if (updatedM) {
+        // Call backend to reschedule
+        fetch('/api/meetings/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ meeting: updatedM, ownerEmail })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.previewUrl) {
+              addN8nLog(`n8n Node [SMTP Mailer]: Canceled old jobs and rescheduled. Sent test email: ${data.previewUrl}`, 'success');
+            }
+          })
+          .catch(err => console.error('[SMTP RESCHEDULING FETCH ERROR]', err));
+      }
+
       // Rescheduled n8n Log workflow
       setShowLogs(true);
       addN8nLog(`n8n Reschedule Trigger: Event rescheduled for "${formData.title}"`, 'trigger');
@@ -273,7 +304,9 @@ export function MeetingsPage() {
       return;
     }
 
+    const meetingId = Date.now();
     const newMeeting = {
+      id: meetingId,
       title: formData.title,
       date: formData.date === 'Today' || formData.date === new Date().toISOString().split('T')[0] ? 'Today' : formData.date,
       time: formData.time,
@@ -298,6 +331,21 @@ export function MeetingsPage() {
     addRecord('meetings', newMeeting);
     setShowScheduler(false);
     toast.success('Meeting scheduled successfully!');
+
+    // Call backend to schedule SMTP notifications
+    fetch('/api/meetings/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meeting: newMeeting, ownerEmail })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.previewUrl) {
+          addN8nLog(`n8n Node [SMTP Mailer]: Instant test email dispatched! Review inbox preview: ${data.previewUrl}`, 'success');
+          toast.success('Test email preview link loaded in n8n console!', { icon: '📧' });
+        }
+      })
+      .catch(err => console.error('[SMTP SCHEDULING FETCH ERROR]', err));
 
     // Trigger n8n Workflow Simulator Log sequence
     triggerN8nMockWorkflow(newMeeting);

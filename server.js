@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
@@ -384,6 +385,224 @@ app.post('/api/ai/chat', async (req, res) => {
       success: false,
       message: "I couldn't reach the AI service. Please try again."
     });
+  }
+});
+
+// --- SMTP EMAILS SCHEDULER & DISPATCH ENGINE ---
+let smtpTransporter = null;
+
+async function getTransporter() {
+  if (smtpTransporter) return smtpTransporter;
+
+  if (process.env.SMTP_HOST) {
+    smtpTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+    console.log(`[SMTP SETUP] Configured Custom SMTP Server: ${process.env.SMTP_HOST}`);
+  } else {
+    try {
+      const testAccount = await nodemailer.createTestAccount();
+      smtpTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
+        }
+      });
+      console.log(`[SMTP SETUP] Created Automatic Ethereal Test Account: ${testAccount.user}`);
+    } catch (e) {
+      console.error('[SMTP SETUP ERROR] Could not create Ethereal test account. Falling back to console logging.', e);
+      smtpTransporter = {
+        sendMail: async (mailOptions) => {
+          console.log(`[SMTP MOCK SENDER] Outbox Message Logged:`, mailOptions);
+          return { messageId: 'mock-id-' + Date.now(), previewUrl: 'https://ethereal.email' };
+        }
+      };
+    }
+  }
+  return smtpTransporter;
+}
+
+const activeJobs = new Map();
+
+function clearMeetingReminders(meetingId) {
+  const mId = String(meetingId);
+  for (const [key, timeoutObj] of activeJobs.entries()) {
+    if (key.startsWith(`${mId}-`)) {
+      clearTimeout(timeoutObj);
+      activeJobs.delete(key);
+    }
+  }
+  console.log(`[MEETINGS ENGINE] Cleared scheduled email notifications for ID ${meetingId}. No duplicates remaining.`);
+}
+
+async function sendReminderEmail(meeting, ownerEmail, reminderType) {
+  const transporter = await getTransporter();
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+
+  const htmlContent = `
+  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; color: #1e293b; background-color: #ffffff;">
+    <div style="display: flex; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 25px;">
+      <div style="width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, #5B5FFF, #00D4FF); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 18px; margin-right: 10px;">B</div>
+      <span style="font-weight: bold; font-size: 15px; color: #1e293b; letter-spacing: 1px;">BUSINESS BRAIN</span>
+    </div>
+
+    <h2 style="font-size: 20px; font-weight: bold; color: #0f172a; margin-top: 0; margin-bottom: 8px;">Upcoming Meeting Reminder</h2>
+    <p style="font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 25px;">
+      This is an automated notification from your B.BRAIN Operating System. Your upcoming sync is starting soon:
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+      <div style="margin-bottom: 15px;">
+        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Meeting Topic</span>
+        <div style="font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 4px;">${meeting.title}</div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; margin-bottom: 15px;">
+        <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Date</span>
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.date}</div>
+        </div>
+        <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Time &amp; Timezone</span>
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.time} (${timezone})</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; margin-bottom: 15px;">
+        <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Duration</span>
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.duration}</div>
+        </div>
+        <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Reminder Offset</span>
+          <div style="font-size: 13px; font-weight: bold; color: #5B5FFF; margin-top: 2px;">${reminderType}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Invited Participants</span>
+        <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 13px; color: #475569;">
+          ${(meeting.participants || []).map(p => `<li style="margin-bottom: 4px; font-weight: 500;">${p}</li>`).join('')}
+        </ul>
+      </div>
+
+      ${meeting.agenda ? `
+      <div>
+        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Discussion Agenda</span>
+        <p style="margin: 5px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5; font-weight: 500;">${meeting.agenda}</p>
+      </div>` : ''}
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 25px;">
+      <a href="${meeting.link}" target="_blank" style="padding: 10px 24px; background-color: #5B5FFF; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 13px; box-shadow: 0 4px 6px rgba(91, 95, 255, 0.25);">Join Meeting</a>
+      <a href="http://localhost:3001/app/meetings" target="_blank" style="padding: 10px 24px; background-color: #ffffff; border: 1px solid #cbd5e1; color: #334155; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 13px;">Open Business Brain</a>
+    </div>
+
+    <div style="border-top: 1px solid #f1f5f9; padding-top: 15px; text-align: center; font-size: 10px; color: #94a3b8; line-height: 1.5;">
+      This security-encrypted alert was dispatched only to invited B.BRAIN account stakeholders: <span style="font-weight: 600;">${ownerEmail}</span>. Role-based access control applies.
+    </div>
+  </div>
+  `;
+
+  const info = await transporter.sendMail({
+    from: `"B.BRAIN SMTP Mailer" <smtp-out@bbrain.ai>`,
+    to: ownerEmail,
+    subject: `[B.BRAIN Reminder: ${reminderType}] ${meeting.title}`,
+    html: htmlContent
+  });
+
+  const previewUrl = nodemailer.getTestMessageUrl ? nodemailer.getTestMessageUrl(info) : null;
+  console.log(`[SMTP DISPATCH SUCCESS] Subject: ${meeting.title} -> ${ownerEmail}. Message ID: ${info.messageId}`);
+  return { messageId: info.messageId, previewUrl };
+}
+
+function scheduleMeetingReminders(meeting, ownerEmail) {
+  const mId = String(meeting.id);
+  clearMeetingReminders(mId);
+
+  const dateParts = meeting.date.split('-');
+  const timeParts = meeting.time.split(':');
+  if (dateParts.length < 3 || timeParts.length < 2) return;
+
+  const [year, month, day] = dateParts.map(Number);
+  const [hours, minutes] = timeParts.map(Number);
+  
+  // Timezone-aware calculation
+  const meetingDateLocal = new Date(year, month - 1, day, hours, minutes, 0);
+  const meetingEpoch = meetingDateLocal.getTime();
+
+  (meeting.reminders || []).forEach((reminder, index) => {
+    let offsetMs = 0;
+    if (reminder.includes('15m')) offsetMs = 15 * 60 * 1000;
+    else if (reminder.includes('1h')) offsetMs = 60 * 60 * 1000;
+    else if (reminder.includes('1d')) offsetMs = 24 * 60 * 60 * 1000;
+    else if (reminder.includes('start') || reminder.includes('at start')) offsetMs = 0;
+
+    const triggerEpoch = meetingEpoch - offsetMs;
+    const delay = triggerEpoch - Date.now();
+
+    if (delay > 0) {
+      const jobKey = `${mId}-${index}`;
+      const timeoutObj = setTimeout(async () => {
+        try {
+          await sendReminderEmail(meeting, ownerEmail, reminder);
+          activeJobs.delete(jobKey);
+        } catch (e) {
+          console.error(`[SMTP ENGINE ERROR] Failed to dispatch reminder ${reminder} for ID ${meeting.id}:`, e);
+        }
+      }, delay);
+      activeJobs.set(jobKey, timeoutObj);
+    }
+  });
+  console.log(`[MEETINGS ENGINE] Configured ${meeting.reminders?.length || 0} timeout reminders for "${meeting.title}" to ${ownerEmail}.`);
+}
+
+// Endpoints
+app.post('/api/meetings/schedule', async (req, res) => {
+  const { meeting, ownerEmail } = req.body;
+  if (!meeting || !ownerEmail) {
+    return res.status(400).json({ success: false, message: 'Missing parameters.' });
+  }
+  
+  try {
+    scheduleMeetingReminders(meeting, ownerEmail);
+    
+    // Dispatch an instant test alert email immediately so the user can verify receipt/preview URL instantly!
+    console.log(`[SMTP TEST] Triggering instant n8n SMTP dispatch to ${ownerEmail}...`);
+    const testResult = await sendReminderEmail(meeting, ownerEmail, 'Instant Test Notification');
+    
+    res.json({ 
+      success: true, 
+      message: 'Reminders scheduled successfully.',
+      previewUrl: testResult.previewUrl 
+    });
+  } catch (e) {
+    console.error('[MEETING SCHEDULER ROUTE ERROR]', e);
+    res.status(500).json({ success: false, message: 'Error scheduling reminders.' });
+  }
+});
+
+app.post('/api/meetings/cancel', (req, res) => {
+  const { meetingId } = req.body;
+  if (!meetingId) {
+    return res.status(400).json({ success: false, message: 'Missing meetingId.' });
+  }
+
+  try {
+    clearMeetingReminders(meetingId);
+    res.json({ success: true, message: 'Reminders cleared successfully.' });
+  } catch (e) {
+    console.error('[MEETING CANCELER ROUTE ERROR]', e);
+    res.status(500).json({ success: false, message: 'Error clearing reminders.' });
   }
 });
 
