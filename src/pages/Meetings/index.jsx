@@ -22,10 +22,74 @@ export function MeetingsPage() {
   const rawMeetings = businessData?.meetings || [];
 
   // Local state
+  const [tick, setTick] = useState(0);
   const [meetings, setMeetings] = useState(rawMeetings);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [activeTab, setActiveTab] = useState('briefing');
   const [showScheduler, setShowScheduler] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [editingMeetingId, setEditingMeetingId] = useState(null);
+
+  useEffect(() => {
+    setActiveTab('briefing');
+  }, [selectedMeeting?.id]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getMeetingCountdown = (meeting) => {
+    if (!meeting) return '';
+    if (meeting.status === 'Completed') return 'Meeting Ended';
+    if (meeting.status === 'Missed') return 'Meeting Missed';
+    if (meeting.status === 'In Progress') return 'Meeting Started';
+
+    if (!meeting.date || !meeting.time) return 'Pending Schedule';
+
+    const dateParts = meeting.date.split('-');
+    const timeParts = meeting.time.split(':');
+    if (dateParts.length < 3 || timeParts.length < 2) return 'Pending Schedule';
+
+    const [year, month, day] = dateParts.map(Number);
+    const [hours, minutes] = timeParts.map(Number);
+    
+    const scheduledTime = new Date(year, month - 1, day, hours, minutes, 0);
+    const now = new Date();
+    
+    const diffMs = scheduledTime.getTime() - now.getTime();
+    
+    if (diffMs <= 0) {
+      const durationMins = parseInt(meeting.duration) || 30;
+      if (diffMs > -durationMins * 60 * 1000) {
+        return 'Meeting Started';
+      } else {
+        return 'Meeting Ended';
+      }
+    }
+    
+    const diffSecs = Math.floor(diffMs / 1000);
+    const secs = diffSecs % 60;
+    const diffMins = Math.floor(diffSecs / 60);
+    const mins = diffMins % 60;
+    const diffHours = Math.floor(diffMins / 60);
+    const hrs = diffHours % 24;
+    const days = Math.floor(diffHours / 24);
+    
+    if (days > 0) {
+      return `Starts in ${days} Day${days > 1 ? 's' : ''} ${hrs > 0 ? `${hrs} Hour${hrs > 1 ? 's' : ''}` : ''}`.trim();
+    }
+    if (hrs > 0) {
+      return `Starts in ${hrs} Hour${hrs > 1 ? 's' : ''} ${mins > 0 ? `${mins} Minute${mins > 1 ? 's' : ''}` : ''}`.trim();
+    }
+    if (mins > 0) {
+      return `Starts in ${mins} Minute${mins > 1 ? 's' : ''} ${secs > 0 ? `${secs} Second${secs !== 1 ? 's' : ''}` : ''}`.trim();
+    }
+    return `Starts in ${secs} Second${secs !== 1 ? 's' : ''}`;
+  };
+
   const [n8nLogs, setN8nLogs] = useState([
     { id: 1, time: '15:24:00', type: 'system', message: 'n8n Workflow Engine: Ready to receive webhook triggers.' }
   ]);
@@ -88,11 +152,124 @@ export function MeetingsPage() {
     ]);
   };
 
+  const handleRescheduleClick = (meeting) => {
+    setEditingMeetingId(meeting.id);
+    setFormData({
+      title: meeting.title,
+      date: meeting.date,
+      time: meeting.time,
+      duration: meeting.duration,
+      priority: meeting.priority || 'Medium',
+      type: meeting.type || 'Video Sync',
+      participants: meeting.participants || [],
+      agenda: meeting.agenda || '',
+      link: meeting.link || 'https://meet.google.com/',
+      syncGoogle: meeting.syncedWith?.includes('Google Calendar') || false,
+      syncOutlook: meeting.syncedWith?.includes('Microsoft Outlook') || false,
+      reminders: meeting.reminders || ['15m before']
+    });
+    setShowScheduler(true);
+  };
+
+  const handleCancelMeeting = (meeting) => {
+    const confirmCancel = window.confirm(`Are you sure you want to cancel the meeting "${meeting.title}"? This will purge all scheduled reminders.`);
+    if (!confirmCancel) return;
+
+    const userId = 'guest';
+    const companyDataRaw = localStorage.getItem(`company_business_data_${userId}`);
+    if (companyDataRaw) {
+      try {
+        const parsed = JSON.parse(companyDataRaw);
+        const updatedMeetings = (parsed.meetings || []).map(m => {
+          if (m.id === meeting.id) {
+            return { ...m, status: 'Missed' };
+          }
+          return m;
+        });
+        
+        localStorage.setItem(`company_business_data_${userId}`, JSON.stringify({
+          ...parsed,
+          meetings: updatedMeetings
+        }));
+        
+        setMeetings(updatedMeetings);
+        setSelectedMeeting(prev => prev?.id === meeting.id ? { ...prev, status: 'Missed' } : prev);
+      } catch (e) {}
+    }
+
+    toast.success('Meeting cancelled and scheduled reminders purged!');
+    
+    // Trigger Cancel logs
+    setShowLogs(true);
+    addN8nLog(`n8n Cancel Trigger: Cancelled event "${meeting.title}"`, 'trigger');
+    addN8nLog(`n8n Node [Cancel Jobs]: Canceled and purged all scheduled cron notifications for ID ${meeting.id}.`, 'notification');
+    addN8nLog(`n8n Node [SMTP Mailer]: Dispatched cancellation notice email to all invited participants.`, 'notification');
+    addN8nLog(`n8n Database sync: Meeting ID ${meeting.id} marked as Missed. 0 duplicate jobs left.`, 'db');
+    addN8nLog(`n8n Workflow execution completed.`, 'success');
+  };
+
   // Schedule Meeting handler
   const handleScheduleSubmit = (e) => {
     e.preventDefault();
     if (!formData.title || !formData.date || !formData.time) {
       toast.error('Please enter Title, Date, and Time.');
+      return;
+    }
+
+    if (editingMeetingId) {
+      // Rescheduling flow
+      const userId = 'guest';
+      const companyDataRaw = localStorage.getItem(`company_business_data_${userId}`);
+      if (companyDataRaw) {
+        try {
+          const parsed = JSON.parse(companyDataRaw);
+          const updatedMeetings = (parsed.meetings || []).map(m => {
+            if (m.id === editingMeetingId) {
+              return {
+                ...m,
+                title: formData.title,
+                date: formData.date,
+                time: formData.time,
+                duration: formData.duration,
+                priority: formData.priority,
+                type: formData.type,
+                participants: formData.participants,
+                agenda: formData.agenda,
+                link: formData.link,
+                syncedWith: [
+                  ...(formData.syncGoogle ? ['Google Calendar'] : []),
+                  ...(formData.syncOutlook ? ['Microsoft Outlook'] : [])
+                ],
+                reminders: formData.reminders,
+                status: 'Upcoming'
+              };
+            }
+            return m;
+          });
+          
+          localStorage.setItem(`company_business_data_${userId}`, JSON.stringify({
+            ...parsed,
+            meetings: updatedMeetings
+          }));
+          
+          setMeetings(updatedMeetings);
+          const updatedM = updatedMeetings.find(m => m.id === editingMeetingId);
+          setSelectedMeeting(updatedM);
+        } catch (err) {}
+      }
+      
+      setShowScheduler(false);
+      setEditingMeetingId(null);
+      toast.success('Meeting rescheduled and n8n reminder jobs updated!');
+      
+      // Rescheduled n8n Log workflow
+      setShowLogs(true);
+      addN8nLog(`n8n Reschedule Trigger: Event rescheduled for "${formData.title}"`, 'trigger');
+      addN8nLog(`n8n Node [Cancel Jobs]: Canceled and purged previous cron schedule to prevent duplicates.`, 'notification');
+      addN8nLog(`n8n Node [Save to DB]: Meeting ID ${editingMeetingId} updated in general ledger.`, 'db');
+      addN8nLog(`n8n Node [Calendar Sync]: Calendar event rescheduled. Sync OK.`, 'calendar');
+      addN8nLog(`n8n Node [Notifications Manager]: Re-scheduled timezone-aware reminder emails to: ${ownerEmail}`, 'notification');
+      addN8nLog(`n8n Workflow execution successfully completed.`, 'success');
       return;
     }
 
@@ -369,9 +546,9 @@ export function MeetingsPage() {
           <p className="text-xs font-bold text-[#94A3B8] uppercase">Next Meeting Countdown</p>
           {nextMeeting ? (
             <div className="mt-3">
-              <p className="text-2xl font-bold text-white tracking-tight">{nextMeeting.time}</p>
-              <p className="text-xs text-[#5B5FFF] font-bold mt-1 flex items-center gap-1">
-                <Clock size={12}/> Starts in 15 mins (Reminder Armed)
+              <p className="text-sm font-semibold text-white tracking-tight truncate">{nextMeeting.title}</p>
+              <p className="text-xs text-[#00D4FF] font-bold mt-1.5 flex items-center gap-1">
+                <Clock size={12} className="animate-pulse" /> {getMeetingCountdown(nextMeeting)}
               </p>
             </div>
           ) : (
@@ -435,9 +612,14 @@ export function MeetingsPage() {
                         'bg-[#5B5FFF]/20 text-[#5B5FFF]'
                       }`}>{m.status}</span>
                     </div>
-                    <div className="flex items-center justify-between text-[9px] text-[#94A3B8] mt-2 border-t border-white/5 pt-2">
-                      <span className="flex items-center gap-1"><Calendar size={9}/> {m.date} ({m.time})</span>
-                      <span className="flex items-center gap-1"><Users size={9}/> {Array.isArray(m?.participants) ? m.participants.length : 0}</span>
+                    <div className="flex flex-col gap-1.5 mt-2 border-t border-white/5 pt-2">
+                      <div className="flex justify-between items-center text-[9px] text-[#94A3B8]">
+                        <span className="flex items-center gap-1"><Calendar size={9}/> {m.date} ({m.time})</span>
+                        <span className="flex items-center gap-1"><Users size={9}/> {Array.isArray(m?.participants) ? m.participants.length : 0}</span>
+                      </div>
+                      <div className="text-[9px] font-bold text-[#00D4FF] flex items-center gap-1">
+                        <Clock size={9}/> {getMeetingCountdown(m)}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -544,96 +726,238 @@ export function MeetingsPage() {
                       <Download size={12} /> Export Brief
                     </button>
                   )}
+                  {selectedMeeting.status === 'Upcoming' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleRescheduleClick(selectedMeeting)}
+                        className="functional-btn px-3.5 py-1.5 bg-[#5B5FFF]/15 border border-[#5B5FFF]/35 hover:bg-[#5B5FFF]/25 text-xs font-bold rounded-lg text-white flex items-center gap-1.5 transition-all"
+                      >
+                        <RefreshCw size={12} /> Reschedule
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelMeeting(selectedMeeting)}
+                        className="functional-btn px-3.5 py-1.5 bg-[#EF4444]/15 border border-[#EF4444]/35 hover:bg-[#EF4444]/25 text-xs font-bold rounded-lg text-white flex items-center gap-1.5 transition-all"
+                      >
+                        <X size={12} /> Cancel Event
+                      </button>
+                    </>
+                  )}
                   <span className={`px-3 py-1 bg-[#5B5FFF]/20 text-[#5B5FFF] text-xs font-bold rounded-full border border-[#5B5FFF]/30 flex items-center gap-1.5`}>
                     <Video size={12} /> {selectedMeeting.type}
                   </span>
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* Meeting Agenda */}
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Agenda</h4>
-                  <p className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5 font-medium">
-                    {selectedMeeting.agenda || 'No agenda outlined.'}
-                  </p>
-                </div>
+              {/* Tab Selector */}
+              <div className="flex border-b border-white/5 bg-[#0B1120]/20 px-6 font-sans">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('briefing')}
+                  className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+                    activeTab === 'briefing' 
+                      ? 'border-[#5B5FFF] text-[#5B5FFF]' 
+                      : 'border-transparent text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  <Zap size={12} /> Briefing &amp; Summary
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('email')}
+                  className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+                    activeTab === 'email' 
+                      ? 'border-[#5B5FFF] text-[#5B5FFF]' 
+                      : 'border-transparent text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  <MessageCircle size={12} /> n8n Email Alert Preview
+                </button>
+              </div>
 
-                {/* Pre-meeting AI Briefing */}
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Zap size={12} /> Pre-Meeting AI Briefing (n8n Scheduled)
-                  </h4>
-                  <div className="bg-[#00D4FF]/5 border border-[#00D4FF]/20 p-4 rounded-xl text-sm text-white/90 leading-relaxed">
-                    {selectedMeeting.brief}
+              {activeTab === 'briefing' ? (
+                <div className="p-6 space-y-6">
+                  {/* Meeting Agenda */}
+                  <div>
+                    <h4 className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Agenda</h4>
+                    <p className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5 font-medium">
+                      {selectedMeeting.agenda || 'No agenda outlined.'}
+                    </p>
                   </div>
-                </div>
 
-                {/* Post-Meeting Notes (If Completed) */}
-                {selectedMeeting.status === 'Completed' && selectedMeeting.notes ? (
-                  <div className="space-y-6 border-t border-white/5 pt-6 font-sans">
-                    {/* Summary */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <MessageCircle size={12} /> Executive Summary
-                      </h4>
-                      <p className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
-                        {selectedMeeting.notes.summary}
-                      </p>
+                  {/* Pre-meeting AI Briefing */}
+                  <div>
+                    <h4 className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Zap size={12} /> Pre-Meeting AI Briefing (n8n Scheduled)
+                    </h4>
+                    <div className="bg-[#00D4FF]/5 border border-[#00D4FF]/20 p-4 rounded-xl text-sm text-white/90 leading-relaxed">
+                      {selectedMeeting.brief}
                     </div>
+                  </div>
 
-                    {/* Decisions */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <Check size={12} /> Key Decisions Resolved
-                      </h4>
-                      <ul className="space-y-2">
-                        {Array.isArray(selectedMeeting?.notes?.decisions) && selectedMeeting.notes.decisions.map((d, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-white/90 bg-white/5 p-3 rounded-lg border border-white/5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] mt-1.5 shrink-0"></span>
-                            {d}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                  {/* Post-Meeting Notes (If Completed) */}
+                  {selectedMeeting.status === 'Completed' && selectedMeeting.notes ? (
+                    <div className="space-y-6 border-t border-white/5 pt-6 font-sans">
+                      {/* Summary */}
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <MessageCircle size={12} /> Executive Summary
+                        </h4>
+                        <p className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
+                          {selectedMeeting.notes.summary}
+                        </p>
+                      </div>
 
-                    {/* Action Items */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-[#F59E0B] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <CheckSquare size={12} /> Sync Action Items (Pushed to Workspace Tasks)
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {Array.isArray(selectedMeeting?.notes?.tasks) && selectedMeeting.notes.tasks.map((t, i) => (
-                          <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl flex flex-col gap-2">
-                            <div className="flex justify-between items-center text-[10px] text-[#94A3B8] font-bold">
-                              <span>Assignee: {t.assignee}</span>
-                              <span className="text-[#F59E0B]">{t.due}</span>
+                      {/* Decisions */}
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <Check size={12} /> Key Decisions Resolved
+                        </h4>
+                        <ul className="space-y-2">
+                          {Array.isArray(selectedMeeting?.notes?.decisions) && selectedMeeting.notes.decisions.map((d, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-white/90 bg-white/5 p-3 rounded-lg border border-white/5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] mt-1.5 shrink-0"></span>
+                              {d}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Action Items */}
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#F59E0B] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <CheckSquare size={12} /> Sync Action Items (Pushed to Workspace Tasks)
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {Array.isArray(selectedMeeting?.notes?.tasks) && selectedMeeting.notes.tasks.map((t, i) => (
+                            <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl flex flex-col gap-2">
+                              <div className="flex justify-between items-center text-[10px] text-[#94A3B8] font-bold">
+                                <span>Assignee: {t.assignee}</span>
+                                <span className="text-[#F59E0B]">{t.due}</span>
+                              </div>
+                              <p className="text-xs text-white leading-snug">{t.task}</p>
+                              <span className="text-[9px] bg-[#10B981]/20 text-[#10B981] font-bold px-1.5 py-0.5 rounded self-start mt-1 flex items-center gap-1">
+                                <Check size={10} /> Sync Complete
+                              </span>
                             </div>
-                            <p className="text-xs text-white leading-snug">{t.task}</p>
-                            <span className="text-[9px] bg-[#10B981]/20 text-[#10B981] font-bold px-1.5 py-0.5 rounded self-start mt-1 flex items-center gap-1">
-                              <Check size={10} /> Sync Complete
-                            </span>
-                          </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : selectedMeeting.status === 'Upcoming' ? (
+                    <div className="bg-white/5 border border-white/5 p-5 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-white font-bold">Integrated Calendar Sync</p>
+                        <p className="text-[10px] text-[#94A3B8] mt-0.5">Event is synchronized with external enterprise calendar pipelines.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        {Array.isArray(selectedMeeting?.syncedWith) && selectedMeeting.syncedWith.map(cal => (
+                          <span key={cal} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded text-[9px] font-bold text-white flex items-center gap-1">
+                            <Globe size={10} className="text-[#5B5FFF]" /> {cal}
+                          </span>
                         ))}
                       </div>
                     </div>
-                  </div>
-                ) : selectedMeeting.status === 'Upcoming' ? (
-                  <div className="bg-white/5 border border-white/5 p-5 rounded-xl flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-white font-bold">Integrated Calendar Sync</p>
-                      <p className="text-[10px] text-[#94A3B8] mt-0.5">Event is synchronized with external enterprise calendar pipelines.</p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="p-6 bg-slate-950/40">
+                  <div className="bg-white text-slate-900 rounded-2xl p-8 max-w-xl mx-auto shadow-2xl border border-slate-200 font-sans">
+                    {/* Email Client Header */}
+                    <div className="border-b border-slate-100 pb-4 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 text-xs text-slate-500 font-mono">
+                      <div>
+                        <p><span className="font-bold text-slate-800">From:</span> B.BRAIN SMTP Mailer &lt;smtp-out@bbrain.ai&gt;</p>
+                        <p className="mt-1"><span className="font-bold text-slate-800">To:</span> {ownerEmail}</p>
+                        <p className="mt-1"><span className="font-bold text-slate-800">Subject:</span> Upcoming Meeting Reminder: {selectedMeeting.title}</p>
+                      </div>
+                      <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-0.5 rounded font-bold uppercase tracking-wide text-[9px]">Dispatched</span>
                     </div>
-                    <div className="flex gap-2">
-                      {Array.isArray(selectedMeeting?.syncedWith) && selectedMeeting.syncedWith.map(cal => (
-                        <span key={cal} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded text-[9px] font-bold text-white flex items-center gap-1">
-                          <Globe size={10} className="text-[#5B5FFF]" /> {cal}
-                        </span>
-                      ))}
+
+                    {/* Brand Logo Header */}
+                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] flex items-center justify-center text-white font-bold text-base shadow">B</div>
+                      <span className="font-bold text-slate-800 text-sm tracking-wider">BUSINESS BRAIN</span>
                     </div>
+
+                    {/* Email Title */}
+                    <h3 className="text-lg font-bold text-slate-800 mb-2">Upcoming Meeting Reminder</h3>
+                    <p className="text-slate-600 text-sm mb-6 leading-relaxed">
+                      This is an automated notification from your B.BRAIN Operating System. Your upcoming sync is starting soon:
+                    </p>
+
+                    {/* Meeting Information Block */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 mb-6 space-y-4 text-xs text-slate-700">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Meeting Topic</p>
+                        <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedMeeting.title}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Scheduled Date</p>
+                          <p className="font-bold text-slate-800 mt-0.5">{selectedMeeting.date}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Time &amp; Timezone</p>
+                          <p className="font-bold text-slate-800 mt-0.5">{selectedMeeting.time} ({Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local'})</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Duration</p>
+                          <p className="font-bold text-slate-800 mt-0.5">{selectedMeeting.duration}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Countdown Status</p>
+                          <p className="font-bold text-cyan-600 mt-0.5">{getMeetingCountdown(selectedMeeting)}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Invited Participants</p>
+                        <ul className="mt-1 space-y-1 list-disc pl-4 text-slate-600">
+                          {(selectedMeeting.participants || []).map((p, idx) => (
+                            <li key={idx} className="font-medium">{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {selectedMeeting.agenda && (
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Discussion Agenda</p>
+                          <p className="mt-1 leading-relaxed text-slate-600 font-medium">{selectedMeeting.agenda}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Interactive Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+                      <a 
+                        href={selectedMeeting.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="px-6 py-2.5 bg-[#5B5FFF] hover:bg-[#4a4deb] text-white text-xs font-bold rounded-lg text-center shadow-lg transition-all"
+                      >
+                        Join Meeting Link
+                      </a>
+                      <button 
+                        type="button" 
+                        onClick={() => toast.success('Navigating to B.BRAIN Dashboard...')}
+                        className="px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg text-center transition-all"
+                      >
+                        Open Business Brain
+                      </button>
+                    </div>
+
+                    {/* Footer disclaimer */}
+                    <p className="text-[10px] text-slate-400 text-center border-t border-slate-100 pt-4 leading-relaxed">
+                      This security-encrypted alert was dispatched only to B.BRAIN account stakeholders: <span className="font-semibold">{ownerEmail}</span>. Role-based access control applies. To manage your SMTP and webhook alert settings, navigate to n8n node integrations.
+                    </p>
                   </div>
-                ) : null}
-              </div>
+                </div>
+              )}
             </GlassCard>
           ) : (
             <GlassCard className="p-8 text-center text-[#94A3B8]">
@@ -690,9 +1014,9 @@ export function MeetingsPage() {
             >
               <div className="p-5 border-b border-white/10 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Calendar size={20} className="text-[#5B5FFF]" /> Schedule New Event Sync
+                  <Calendar size={20} className="text-[#5B5FFF]" /> {editingMeetingId ? 'Reschedule Event Sync' : 'Schedule New Event Sync'}
                 </h3>
-                <button type="button" onClick={() => setShowScheduler(false)} className="text-[#94A3B8] hover:text-white transition-colors">
+                <button type="button" onClick={() => { setShowScheduler(false); setEditingMeetingId(null); }} className="text-[#94A3B8] hover:text-white transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -735,6 +1059,9 @@ export function MeetingsPage() {
                     />
                   </div>
                 </div>
+                <p className="text-[10px] text-[#00D4FF] font-semibold flex items-center gap-1">
+                  🕒 Timezone Detected: {Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'} (All reminders are calculated in this local time)
+                </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Duration */}
@@ -895,7 +1222,7 @@ export function MeetingsPage() {
                 <div className="flex justify-end gap-3 border-t border-white/5 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowScheduler(false)}
+                    onClick={() => { setShowScheduler(false); setEditingMeetingId(null); }}
                     className="px-4 py-2.5 rounded-xl border border-[#5B5FFF]/30 text-white text-xs font-bold hover:bg-white/5 transition-colors"
                   >
                     Cancel
@@ -904,7 +1231,7 @@ export function MeetingsPage() {
                     type="submit"
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#5B5FFF] to-[#00D4FF] text-white text-xs font-bold transition-transform hover:scale-[1.02]"
                   >
-                    Trigger n8n Workflow
+                    {editingMeetingId ? 'Update & Re-schedule' : 'Trigger n8n Workflow'}
                   </button>
                 </div>
               </form>

@@ -89,6 +89,18 @@ function getSandboxData(industry, currencySymbol) {
   const isINR = currencySymbol === '₹';
   const mult = isINR ? 100 : 1; // scale values for INR vs USD/EUR
 
+  const now = new Date();
+  
+  // Meeting 1: Today, 3 hours 15 mins later
+  const time1 = new Date(now.getTime() + 3 * 60 * 60 * 1000 + 15 * 60 * 1000);
+  const dateStr1 = time1.toISOString().split('T')[0];
+  const timeStr1 = time1.toTimeString().split(' ')[0].slice(0, 5);
+
+  // Meeting 2: Yesterday
+  const time2 = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const dateStr2 = time2.toISOString().split('T')[0];
+  const timeStr2 = "11:00";
+
   switch (industry) {
     case 'Restaurant':
       return {
@@ -122,8 +134,8 @@ function getSandboxData(industry, currencySymbol) {
           {
             id: 1,
             title: 'Weekly Kitchen Ops & Menu Sync',
-            date: 'Today',
-            time: '16:00',
+            date: dateStr1,
+            time: timeStr1,
             duration: '45 mins',
             priority: 'High',
             type: 'In-Person',
@@ -167,8 +179,8 @@ function getSandboxData(industry, currencySymbol) {
           {
             id: 1,
             title: 'ICU Telemetry Patient Load Sync',
-            date: 'Today',
-            time: '09:00',
+            date: dateStr1,
+            time: timeStr1,
             duration: '45 mins',
             priority: 'High',
             type: 'In-Person',
@@ -217,8 +229,8 @@ function getSandboxData(industry, currencySymbol) {
           {
             id: 1,
             title: 'Q3 Product Roadmap & Feature Review',
-            date: 'Today',
-            time: '14:30',
+            date: dateStr1,
+            time: timeStr1,
             duration: '45 mins',
             priority: 'High',
             type: 'Video Sync',
@@ -235,8 +247,8 @@ function getSandboxData(industry, currencySymbol) {
           {
             id: 2,
             title: 'Sprint Retrospective & Demo',
-            date: 'Yesterday',
-            time: '11:00',
+            date: dateStr2,
+            time: timeStr2,
             duration: '30 mins',
             priority: 'Medium',
             type: 'Video Sync',
