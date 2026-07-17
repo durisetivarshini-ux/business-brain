@@ -9,9 +9,13 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export function MeetingsPage() {
   const { workspaceConfig: config, businessData, addRecord, currencySymbol } = useWorkspace();
+  const { user } = useAuth();
+  const ownerEmail = user?.email || 'owner@businessbrain.ai';
+
   const industry = config?.customIndustry || 'Software Company';
 
   const employees = businessData?.employees || [];
@@ -141,11 +145,11 @@ export function MeetingsPage() {
     }, 2400);
 
     setTimeout(() => {
-      addN8nLog(`n8n Node [Notifications Manager]: Reminders scheduled at configured parameters: ${meeting.reminders.join(', ')}`, 'notification');
+      addN8nLog(`n8n Node [Notifications Manager]: Email reminders queued for delivery to owner/user email: ${ownerEmail}`, 'notification');
     }, 3200);
 
     setTimeout(() => {
-      addN8nLog(`n8n Workflow execution completed for "${meeting.title}". Status: 200 OK`, 'success');
+      addN8nLog(`n8n Workflow execution completed for "${meeting.title}". Status: 200 OK. Notification dispatch armed to ${ownerEmail}`, 'success');
     }, 4000);
   };
 
@@ -250,6 +254,7 @@ export function MeetingsPage() {
       toast.dismiss('ai-summary');
       toast.success('AI Meeting Briefing & Tasks Synchronized!', { icon: '✅' });
       addN8nLog(`n8n Node [Task Creator]: Generated 1 task, assigned to "${assigneeName}". Dashboard updated.`, 'db');
+      addN8nLog(`n8n Node [Notifications Manager]: Dispatched completed meeting notes and action tasks to owner: ${ownerEmail}`, 'notification');
       addN8nLog(`n8n Workflow execution successfully completed.`, 'success');
       
       // Auto-select the updated meeting to show notes
@@ -880,6 +885,9 @@ export function MeetingsPage() {
                         );
                       })}
                     </div>
+                    <p className="text-[10px] text-[#94A3B8] mt-2 font-medium">
+                      📧 Scheduled email notifications will automatically be sent to the owner's registered address: <span className="text-[#00D4FF] font-bold">{ownerEmail}</span>.
+                    </p>
                   </div>
                 </div>
 
