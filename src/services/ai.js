@@ -26,6 +26,29 @@ export async function generateAIResponse(prompt, history = [], attachments = [],
     } catch (e) {}
   }
 
+  // Gather active business metrics context
+  const dataRaw = localStorage.getItem(`company_business_data_${userId}`);
+  let businessData = {};
+  if (dataRaw) {
+    try {
+      businessData = JSON.parse(dataRaw);
+    } catch (e) {}
+  }
+
+  const transactions = businessData.transactions || [];
+  const totalRevenue = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+
+  context.businessMetrics = {
+    hasRealData: !!businessData.hasData,
+    totalRevenue,
+    totalExpenses,
+    customerCount: businessData.customers?.length || 0,
+    employeeCount: businessData.employees?.length || 0,
+    productCount: businessData.products?.length || 0,
+    recentTransactions: transactions.slice(0, 5)
+  };
+
   // Gather location-specific workspace module context automatically
   const currentPath = window.location.pathname;
   context.currentPath = currentPath;

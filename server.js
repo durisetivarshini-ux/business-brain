@@ -126,6 +126,34 @@ function getSystemInstruction(context = {}) {
   const annualRevenue = context.annualRevenue || 'Under ₹10 Lakhs';
   const activeModule = context.activeModule || 'General';
 
+  const metrics = context.businessMetrics || {};
+  const hasRealData = metrics.hasRealData;
+  const currencySymbol = context.currency === 'USD' ? '$' : context.currency === 'EUR' ? '€' : '₹';
+
+  let dataContext = "";
+  if (hasRealData) {
+    const netProfit = (metrics.totalRevenue || 0) - (metrics.totalExpenses || 0);
+    const profitMargin = metrics.totalRevenue > 0 ? Math.round((netProfit / metrics.totalRevenue) * 100) : 0;
+    dataContext = `
+REAL OPERATIONAL DATABASE METRICS:
+The user has entered or imported their actual operational data. All calculations, predictions, margins, and operational feedback MUST be mathematically derived from these figures:
+- Total Logged Revenue: ${currencySymbol}${metrics.totalRevenue?.toLocaleString()}
+- Total Logged Expenses: ${currencySymbol}${metrics.totalExpenses?.toLocaleString()}
+- Net Profit: ${currencySymbol}${netProfit.toLocaleString()}
+- Gross Profit Margin: ${profitMargin}%
+- Onboarded Customers Count: ${metrics.customerCount}
+- Active Employees Count: ${metrics.employeeCount}
+- Catalog Products Count: ${metrics.productCount}
+- Recent Ledger Items: ${JSON.stringify(metrics.recentTransactions || [])}
+
+Rule: Never hallucinate or present fake numbers. Compute margins and forecasts directly from this live data.`;
+  } else {
+    dataContext = `
+NO OPERATIONAL DATABASE DATA:
+The user has not entered or imported any business records (employees, inventory, customers, transactions) to the platform yet. 
+Rule: Do not output analytics. Instruct the user to complete the setup checklists, import their spreadsheets (CSV/Excel), or connect their accounting software (Shopify, QuickBooks, Zoho, Tally) using the Admin Setup Wizard on the dashboard. Explain that this will unlock live dashboard charts and AI analytical insights.`;
+  }
+
   let moduleInstruction = "";
   switch (activeModule) {
     case 'Finance':
@@ -170,6 +198,9 @@ Active Business Context:
 - Stage of Business: ${stage}
 - Team Size: ${employeeCount}
 - Estimated Revenue Range: ${annualRevenue}
+
+Database Metrics Context:
+${dataContext}
 
 Target Workspace Module Context:
 - Active Module: ${activeModule}

@@ -1,20 +1,23 @@
 import React from 'react';
 import { DataTable } from '../ui/DataTable';
+import { useWorkspace } from '../../context/WorkspaceContext';
 
 export function RecentTransactionsTable() {
-  const transactions = [
-    { id: 'TXN-001', client: 'Acme Corp', amount: '$12,500', status: 'Completed', date: '2026-07-07', rep: 'Varshini' },
-    { id: 'TXN-002', client: 'Global Tech', amount: '$4,200', status: 'Pending', date: '2026-07-06', rep: 'John' },
-    { id: 'TXN-003', client: 'Nexus Ind.', amount: '$28,000', status: 'Completed', date: '2026-07-05', rep: 'Sarah' },
-    { id: 'TXN-004', client: 'Stellar Cloud', amount: '$8,900', status: 'Failed', date: '2026-07-04', rep: 'Varshini' },
-    { id: 'TXN-005', client: 'DataSync', amount: '$15,000', status: 'Completed', date: '2026-07-03', rep: 'Mike' },
-    { id: 'TXN-006', client: 'Alpha Net', amount: '$3,100', status: 'Completed', date: '2026-07-02', rep: 'Sarah' },
-    { id: 'TXN-007', client: 'Quantum AI', amount: '$45,000', status: 'Pending', date: '2026-07-01', rep: 'Varshini' },
-  ];
+  const { businessData, currencySymbol } = useWorkspace();
+  const rawTransactions = businessData.transactions || [];
+
+  const transactions = rawTransactions.map(t => ({
+    id: t.id || 'TXN-001',
+    client: t.desc || 'Acme Corp',
+    amount: `${t.amount < 0 ? '-' : ''}${currencySymbol}${Math.abs(t.amount).toLocaleString()}`,
+    status: t.status || 'Completed',
+    date: t.date || 'Today',
+    rep: 'Admin'
+  }));
 
   const columns = [
     { key: 'id', label: 'Transaction ID' },
-    { key: 'client', label: 'Client' },
+    { key: 'client', label: 'Transaction Description' },
     { key: 'amount', label: 'Amount' },
     { key: 'status', label: 'Status', render: (val) => (
       <span className={`px-2 py-1 rounded text-xs font-bold ${
@@ -26,7 +29,7 @@ export function RecentTransactionsTable() {
       </span>
     )},
     { key: 'date', label: 'Date' },
-    { key: 'rep', label: 'Sales Rep' },
+    { key: 'rep', label: 'Actor' },
   ];
 
   return (
@@ -34,7 +37,7 @@ export function RecentTransactionsTable() {
       <DataTable 
         data={transactions} 
         columns={columns} 
-        title="Recent Transactions" 
+        title="Recent Transactions Ledger" 
       />
     </div>
   );
