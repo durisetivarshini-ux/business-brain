@@ -5,6 +5,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import axios from 'axios';
+import { MongoClient } from 'mongodb';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -117,6 +119,20 @@ app.post('/api/auth/google', async (req, res) => {
   const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl } });
 });
+
+const MEETINGS_FILE = path.join(__dirname, 'meetings.json');
+
+async function loadMeetingsContext(context) {
+  try {
+    const data = await fs.readFile(MEETINGS_FILE, 'utf-8');
+    const meetingsList = JSON.parse(data);
+    if (!context.businessMetrics) {
+      context.businessMetrics = {};
+    }
+    context.businessMetrics.meetings = meetingsList;
+    context.businessMetrics.hasRealData = true;
+  } catch (e) {}
+}
 
 function getSystemInstruction(context = {}) {
   const company = context.companyName || 'Business Brain Enterprise';
@@ -274,6 +290,7 @@ app.post('/api/chat', async (req, res) => {
     const { prompt, history = [], attachments = [], context = {} } = req.body;
     console.log(`[BACKEND TRACE] Prompt: "${prompt?.substring(0, 30)}...", History: ${history.length}, Attachments: ${attachments.length}`);
 
+    await loadMeetingsContext(context);
     const systemInstruction = getSystemInstruction(context);
     const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -340,6 +357,7 @@ app.post('/api/ai/chat', async (req, res) => {
 
   try {
     const { message, history = [], attachments = [], context = {} } = req.body;
+    await loadMeetingsContext(context);
     const systemInstruction = getSystemInstruction(context);
     const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -388,9 +406,69 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 });
 
-// --- SMTP EMAILS SCHEDULER & DISPATCH ENGINE ---
+// --- SMTP & CLOUD API EMAILS SCHEDULER & DISPATCH ENGINE ---
 let smtpTransporter = null;
+let dbClient = null;
+const useMongoDB = !!process.env.MONGODB_URI;
 
+async function getMeetings() {
+  if (useMongoDB) {
+    try {
+      if (!dbClient) {
+        dbClient = new MongoClient(process.env.MONGODB_URI);
+        await dbClient.connect();
+      }
+      const db = dbClient.db(process.env.MONGODB_DB || 'business_brain');
+      return await db.collection('meetings').find({}).toArray();
+    } catch (err) {
+      console.error('[DATABASE ERROR] Failed to connect/fetch from MongoDB, falling back to local file:', err.message);
+    }
+  }
+  
+  try {
+    const data = await fs.readFile(MEETINGS_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      await fs.writeFile(MEETINGS_FILE, JSON.stringify([], null, 2));
+      return [];
+    }
+    return [];
+  }
+}
+
+async function saveMeetings(meetings) {
+  if (useMongoDB) {
+    try {
+      if (!dbClient) {
+        dbClient = new MongoClient(process.env.MONGODB_URI);
+        await dbClient.connect();
+      }
+      const db = dbClient.db(process.env.MONGODB_DB || 'business_brain');
+      await db.collection('meetings').deleteMany({});
+      if (meetings.length > 0) {
+        await db.collection('meetings').insertMany(meetings);
+      }
+      return;
+    } catch (err) {
+      console.error('[DATABASE ERROR] Failed to write to MongoDB:', err.message);
+    }
+  }
+  await fs.writeFile(MEETINGS_FILE, JSON.stringify(meetings, null, 2));
+}
+
+// Participant Email Resolver
+function getParticipantEmail(name) {
+  const cleanName = name.toLowerCase().trim();
+  if (cleanName.includes('tony')) return 'tony@starkindustries.com';
+  if (cleanName.includes('pepper')) return 'pepper@starkindustries.com';
+  if (cleanName.includes('bruce')) return 'bruce@waynecorp.com';
+  if (cleanName.includes('thor')) return 'thor@asgard.com';
+  if (cleanName.includes('natasha')) return 'natasha@shield.gov';
+  return `${cleanName.replace(/\s+/g, '.')}@businessbrain.ai`;
+}
+
+// Transporter configurer
 async function getTransporter() {
   if (smtpTransporter) return smtpTransporter;
 
@@ -419,7 +497,7 @@ async function getTransporter() {
       });
       console.log(`[SMTP SETUP] Created Automatic Ethereal Test Account: ${testAccount.user}`);
     } catch (e) {
-      console.error('[SMTP SETUP ERROR] Could not create Ethereal test account. Falling back to console logging.', e);
+      console.error('[SMTP SETUP ERROR] Could not create Ethereal test account. Falling back to mock console logs.', e);
       smtpTransporter = {
         sendMail: async (mailOptions) => {
           console.log(`[SMTP MOCK SENDER] Outbox Message Logged:`, mailOptions);
@@ -429,6 +507,88 @@ async function getTransporter() {
     }
   }
   return smtpTransporter;
+}
+
+// Multi-provider Configurable Email Dispatcher
+async function dispatchEmail({ to, subject, html }) {
+  const provider = process.env.EMAIL_PROVIDER || 'smtp';
+  
+  if (provider === 'resend' && process.env.RESEND_API_KEY) {
+    console.log(`[EMAIL DISPATCH] Sending via Resend to ${to}...`);
+    try {
+      const response = await axios.post('https://api.resend.com/emails', {
+        from: 'B.BRAIN Operating System <onboarding@resend.dev>',
+        to: Array.isArray(to) ? to : [to],
+        subject: subject,
+        html: html
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('[EMAIL DISPATCH SUCCESS] Resend Response ID:', response.data.id);
+      return { success: true, messageId: response.data.id };
+    } catch (e) {
+      console.error('[EMAIL DISPATCH ERROR] Resend failure:', e.response?.data || e.message);
+      throw e;
+    }
+  } 
+  
+  if (provider === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    console.log(`[EMAIL DISPATCH] Sending via SendGrid to ${to}...`);
+    try {
+      const response = await axios.post('https://api.sendgrid.com/v3/mail/send', {
+        personalizations: [{
+          to: (Array.isArray(to) ? to : [to]).map(email => ({ email }))
+        }],
+        from: { email: 'alerts@bbrain.ai', name: 'B.BRAIN Operating System' },
+        subject: subject,
+        content: [{ type: 'text/html', value: html }]
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('[EMAIL DISPATCH SUCCESS] SendGrid Status:', response.status);
+      return { success: true };
+    } catch (e) {
+      console.error('[EMAIL DISPATCH ERROR] SendGrid failure:', e.response?.data || e.message);
+      throw e;
+    }
+  }
+
+  // Fallback SMTP
+  const transporter = await getTransporter();
+  const info = await transporter.sendMail({
+    from: `"B.BRAIN SMTP Mailer" <smtp-out@bbrain.ai>`,
+    to: Array.isArray(to) ? to.join(', ') : to,
+    subject: subject,
+    html: html
+  });
+  
+  const previewUrl = nodemailer.getTestMessageUrl ? nodemailer.getTestMessageUrl(info) : null;
+  console.log(`[EMAIL DISPATCH SUCCESS] SMTP Message: ${info.messageId}. Preview URL: ${previewUrl}`);
+  return { success: true, messageId: info.messageId, previewUrl };
+}
+
+// Trigger n8n Webhook Dispatcher
+const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || '';
+
+async function triggerN8nWebhook(payload) {
+  if (!n8nWebhookUrl) {
+    console.warn('[n8n] N8N_WEBHOOK_URL not configured. Skipping webhook dispatch.');
+    return null;
+  }
+  try {
+    const response = await axios.post(n8nWebhookUrl, payload);
+    console.log('[n8n] Webhook triggered successfully. Status:', response.status);
+    return response.data;
+  } catch (error) {
+    console.error('[n8n] Error triggering webhook:', error.message);
+    throw error;
+  }
 }
 
 const activeJobs = new Map();
@@ -445,8 +605,26 @@ function clearMeetingReminders(meetingId) {
 }
 
 async function sendReminderEmail(meeting, ownerEmail, reminderType) {
-  const transporter = await getTransporter();
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+  const cleanId = String(meeting.id);
+  const meetings = await getMeetings();
+  const meetingRecord = meetings.find(m => String(m.id) === cleanId);
+  
+  // Prevent duplicate execution checking
+  if (meetingRecord && meetingRecord.remindersSent && meetingRecord.remindersSent[reminderType]) {
+    console.log(`[SMTP ENGINE] Reminder ${reminderType} already dispatched for ID ${meeting.id}. Preventing duplicate.`);
+    return { success: true, message: 'Already sent' };
+  }
+
+  const timezone = meeting.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+
+  // Build recipients list
+  const recipientEmails = [ownerEmail];
+  (meeting.participants || []).forEach(name => {
+    const email = getParticipantEmail(name);
+    if (!recipientEmails.includes(email)) {
+      recipientEmails.push(email);
+    }
+  });
 
   const htmlContent = `
   <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; color: #1e293b; background-color: #ffffff;">
@@ -455,14 +633,15 @@ async function sendReminderEmail(meeting, ownerEmail, reminderType) {
       <span style="font-weight: bold; font-size: 15px; color: #1e293b; letter-spacing: 1px;">BUSINESS BRAIN</span>
     </div>
 
-    <h2 style="font-size: 20px; font-weight: bold; color: #0f172a; margin-top: 0; margin-bottom: 8px;">Upcoming Meeting Reminder</h2>
+    <h2 style="font-size: 20px; font-weight: bold; color: #0f172a; margin-top: 0; margin-bottom: 8px;">Upcoming Meeting Reminder — ${meeting.title}</h2>
     <p style="font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 25px;">
-      This is an automated notification from your B.BRAIN Operating System. Your upcoming sync is starting soon:
+      Hello ${meeting.organizer?.name || 'User'},<br/><br/>
+      This is a reminder that your meeting is approaching.
     </p>
 
     <div style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
       <div style="margin-bottom: 15px;">
-        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Meeting Topic</span>
+        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Meeting</span>
         <div style="font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 4px;">${meeting.title}</div>
       </div>
 
@@ -472,32 +651,32 @@ async function sendReminderEmail(meeting, ownerEmail, reminderType) {
           <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.date}</div>
         </div>
         <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
-          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Time &amp; Timezone</span>
-          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.time} (${timezone})</div>
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Time</span>
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.time}</div>
         </div>
       </div>
 
       <div style="display: flex; flex-wrap: wrap; margin-bottom: 15px;">
         <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
-          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Duration</span>
-          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.duration}</div>
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Timezone</span>
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${timezone}</div>
         </div>
         <div style="flex: 1; min-width: 120px; margin-bottom: 10px;">
-          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Reminder Offset</span>
-          <div style="font-size: 13px; font-weight: bold; color: #5B5FFF; margin-top: 2px;">${reminderType}</div>
+          <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Duration</span>
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">${meeting.duration}</div>
         </div>
       </div>
 
       <div style="margin-bottom: 15px;">
-        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Invited Participants</span>
-        <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 13px; color: #475569;">
-          ${(meeting.participants || []).map(p => `<li style="margin-bottom: 4px; font-weight: 500;">${p}</li>`).join('')}
-        </ul>
+        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Participants</span>
+        <div style="font-size: 13px; color: #475569; margin-top: 4px; font-weight: 500;">
+          ${recipientEmails.join(', ')}
+        </div>
       </div>
 
       ${meeting.agenda ? `
       <div>
-        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Discussion Agenda</span>
+        <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Agenda</span>
         <p style="margin: 5px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5; font-weight: 500;">${meeting.agenda}</p>
       </div>` : ''}
     </div>
@@ -513,16 +692,22 @@ async function sendReminderEmail(meeting, ownerEmail, reminderType) {
   </div>
   `;
 
-  const info = await transporter.sendMail({
-    from: `"B.BRAIN SMTP Mailer" <smtp-out@bbrain.ai>`,
-    to: ownerEmail,
+  const info = await dispatchEmail({
+    to: recipientEmails,
     subject: `[B.BRAIN Reminder: ${reminderType}] ${meeting.title}`,
     html: htmlContent
   });
 
-  const previewUrl = nodemailer.getTestMessageUrl ? nodemailer.getTestMessageUrl(info) : null;
-  console.log(`[SMTP DISPATCH SUCCESS] Subject: ${meeting.title} -> ${ownerEmail}. Message ID: ${info.messageId}`);
-  return { messageId: info.messageId, previewUrl };
+  // Mark status as sent to avoid duplicates
+  if (meetingRecord) {
+    if (!meetingRecord.remindersSent) {
+      meetingRecord.remindersSent = {};
+    }
+    meetingRecord.remindersSent[reminderType] = true;
+    await saveMeetings(meetings);
+  }
+
+  return info;
 }
 
 function scheduleMeetingReminders(meeting, ownerEmail) {
@@ -536,7 +721,6 @@ function scheduleMeetingReminders(meeting, ownerEmail) {
   const [year, month, day] = dateParts.map(Number);
   const [hours, minutes] = timeParts.map(Number);
   
-  // Timezone-aware calculation
   const meetingDateLocal = new Date(year, month - 1, day, hours, minutes, 0);
   const meetingEpoch = meetingDateLocal.getTime();
 
@@ -566,6 +750,24 @@ function scheduleMeetingReminders(meeting, ownerEmail) {
   console.log(`[MEETINGS ENGINE] Configured ${meeting.reminders?.length || 0} timeout reminders for "${meeting.title}" to ${ownerEmail}.`);
 }
 
+async function initSchedulerOnBoot() {
+  console.log('[MEETINGS ENGINE] Initializing scheduler recovery on server boot...');
+  try {
+    const meetings = await getMeetings();
+    let count = 0;
+    meetings.forEach(meeting => {
+      if (meeting.status === 'Upcoming' || meeting.status === 'Scheduled') {
+        const ownerEmail = meeting.organizer?.email || 'owner@businessbrain.ai';
+        scheduleMeetingReminders(meeting, ownerEmail);
+        count++;
+      }
+    });
+    console.log(`[MEETINGS ENGINE] Successfully recovered ${count} active meeting timers on boot.`);
+  } catch (err) {
+    console.error('[MEETINGS ENGINE ERROR] Failed to recover scheduler on boot:', err);
+  }
+}
+
 // Endpoints
 app.post('/api/meetings/schedule', async (req, res) => {
   const { meeting, ownerEmail } = req.body;
@@ -574,16 +776,52 @@ app.post('/api/meetings/schedule', async (req, res) => {
   }
   
   try {
-    scheduleMeetingReminders(meeting, ownerEmail);
+    const meetings = await getMeetings();
+    const cleanId = String(meeting.id);
+    const existingIdx = meetings.findIndex(m => String(m.id) === cleanId);
+    
+    let meetingToSave = { ...meeting };
+    if (existingIdx !== -1) {
+      meetingToSave.remindersSent = meetings[existingIdx].remindersSent || {};
+      meetings[existingIdx] = meetingToSave;
+      console.log(`[MEETINGS ENGINE] Rescheduled meeting ID ${meeting.id} updated in database.`);
+    } else {
+      meetingToSave.remindersSent = {};
+      meetings.push(meetingToSave);
+      console.log(`[MEETINGS ENGINE] New meeting ID ${meeting.id} saved to database.`);
+    }
+    
+    await saveMeetings(meetings);
+    scheduleMeetingReminders(meetingToSave, ownerEmail);
+    
+    // Trigger n8n webhook
+    const n8nPayload = {
+      meetingId: meetingToSave.id,
+      title: meetingToSave.title,
+      date: meetingToSave.date,
+      time: meetingToSave.time,
+      timezone: meetingToSave.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      participants: meetingToSave.participants || [],
+      organizerEmail: ownerEmail,
+      meetingLink: meetingToSave.link
+    };
+    
+    let webhookResult = null;
+    try {
+      webhookResult = await triggerN8nWebhook(n8nPayload);
+    } catch (err) {
+      console.warn('[n8n Webhook] n8n URL not configured or offline, proceeding with local SMTP schedules.');
+    }
     
     // Dispatch an instant test alert email immediately so the user can verify receipt/preview URL instantly!
     console.log(`[SMTP TEST] Triggering instant n8n SMTP dispatch to ${ownerEmail}...`);
-    const testResult = await sendReminderEmail(meeting, ownerEmail, 'Instant Test Notification');
+    const testResult = await sendReminderEmail(meetingToSave, ownerEmail, 'Instant Test Notification');
     
     res.json({ 
       success: true, 
-      message: 'Reminders scheduled successfully.',
-      previewUrl: testResult.previewUrl 
+      message: 'Meeting scheduled successfully.',
+      previewUrl: testResult.previewUrl,
+      webhookDispatched: !!webhookResult
     });
   } catch (e) {
     console.error('[MEETING SCHEDULER ROUTE ERROR]', e);
@@ -591,21 +829,62 @@ app.post('/api/meetings/schedule', async (req, res) => {
   }
 });
 
-app.post('/api/meetings/cancel', (req, res) => {
+app.post('/api/meetings/cancel', async (req, res) => {
   const { meetingId } = req.body;
   if (!meetingId) {
     return res.status(400).json({ success: false, message: 'Missing meetingId.' });
   }
 
   try {
+    const meetings = await getMeetings();
+    const updatedMeetings = meetings.map(m => {
+      if (String(m.id) === String(meetingId)) {
+        return { ...m, status: 'Missed' };
+      }
+      return m;
+    });
+    await saveMeetings(updatedMeetings);
     clearMeetingReminders(meetingId);
-    res.json({ success: true, message: 'Reminders cleared successfully.' });
+    res.json({ success: true, message: 'Meeting cancelled successfully.' });
   } catch (e) {
     console.error('[MEETING CANCELER ROUTE ERROR]', e);
     res.status(500).json({ success: false, message: 'Error clearing reminders.' });
   }
 });
 
-app.listen(PORT, () => {
+// Callback receiver route from n8n workflow triggers
+app.post('/api/meetings/send-reminder-email', async (req, res) => {
+  const { meetingId, reminderType } = req.body;
+  if (!meetingId || !reminderType) {
+    return res.status(400).json({ success: false, message: 'Missing parameters.' });
+  }
+  
+  try {
+    const meetings = await getMeetings();
+    const meeting = meetings.find(m => String(m.id) === String(meetingId));
+    if (!meeting) {
+      return res.status(404).json({ success: false, message: 'Meeting not found.' });
+    }
+    
+    const ownerEmail = meeting.organizer?.email || 'owner@businessbrain.ai';
+    const result = await sendReminderEmail(meeting, ownerEmail, reminderType);
+    
+    res.json({
+      success: true,
+      message: `Reminder ${reminderType} dispatched successfully from webhook.`,
+      previewUrl: result.previewUrl
+    });
+  } catch (err) {
+    console.error('[SMTP WEBHOOK DISPATCH ERROR]', err);
+    res.status(500).json({ success: false, message: 'Error sending webhook email.' });
+  }
+});
+
+app.listen(PORT, async () => {
   console.log(`🚀 Secure AI Backend running on http://localhost:${PORT}`);
+  try {
+    await initSchedulerOnBoot();
+  } catch (err) {
+    console.error('[MEETINGS BOOT ERROR] Could not initialize scheduler recovery:', err);
+  }
 });

@@ -235,7 +235,15 @@ export function MeetingsPage() {
           ...(formData.syncOutlook ? ['Microsoft Outlook'] : [])
         ],
         reminders: formData.reminders,
-        status: 'Upcoming'
+        status: 'Upcoming',
+        organizer: {
+          id: user?.uid || 'guest',
+          name: user?.displayName || user?.name || 'Administrator',
+          email: ownerEmail,
+          company: config?.companyName || 'Business Brain Enterprise',
+          timezone: config?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+          role: user?.role || 'Owner'
+        }
       };
 
       updateRecord('meetings', editingMeetingId, updatedFields);
@@ -296,6 +304,14 @@ export function MeetingsPage() {
       ],
       reminders: formData.reminders,
       status: 'Upcoming',
+      organizer: {
+        id: user?.uid || 'guest',
+        name: user?.displayName || user?.name || 'Administrator',
+        email: ownerEmail,
+        company: config?.companyName || 'Business Brain Enterprise',
+        timezone: config?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        role: user?.role || 'Owner'
+      },
       brief: `AI Briefing: Analyzing agenda "${formData.agenda}". Target context spans ${formData.participants.length} team members. Revenue figures (${currencySymbol}${(businessData.transactions || []).filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0).toLocaleString()}) are loaded.`,
       notes: null,
       tasksCreated: false
