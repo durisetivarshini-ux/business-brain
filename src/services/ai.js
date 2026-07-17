@@ -46,7 +46,8 @@ export async function generateAIResponse(prompt, history = [], attachments = [],
     customerCount: businessData.customers?.length || 0,
     employeeCount: businessData.employees?.length || 0,
     productCount: businessData.products?.length || 0,
-    recentTransactions: transactions.slice(0, 5)
+    recentTransactions: transactions.slice(0, 5),
+    meetings: businessData.meetings || []
   };
 
   // Gather location-specific workspace module context automatically

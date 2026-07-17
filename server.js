@@ -145,8 +145,9 @@ The user has entered or imported their actual operational data. All calculations
 - Active Employees Count: ${metrics.employeeCount}
 - Catalog Products Count: ${metrics.productCount}
 - Recent Ledger Items: ${JSON.stringify(metrics.recentTransactions || [])}
+- Scheduled/Completed Meetings: ${JSON.stringify(metrics.meetings || [])}
 
-Rule: Never hallucinate or present fake numbers. Compute margins and forecasts directly from this live data.`;
+Rule: Never hallucinate or present fake numbers. Compute margins and forecasts directly from this live data. If queried about meetings, syncs, countdowns, or agendas, read the meetings list above and respond naturally (mentioning time, attendees, link, and action tasks).`;
   } else {
     dataContext = `
 NO OPERATIONAL DATABASE DATA:

@@ -80,7 +80,8 @@ const defaultBusinessData = {
   customers: [],
   employees: [],
   products: [],
-  transactions: []
+  transactions: [],
+  meetings: []
 };
 
 // Sandbox generator based on industry
@@ -116,6 +117,26 @@ function getSandboxData(industry, currencySymbol) {
           { id: "TX-1003", date: "Yesterday", desc: "Meat & Poultry Vendor Supply", amount: -15000 * mult, status: "Completed", type: "expense" },
           { id: "TX-1004", date: "Yesterday", desc: "Fresh Organic Vegetables Supply", amount: -4200 * mult, status: "Completed", type: "expense" },
           { id: "TX-1005", date: "2 days ago", desc: "Table 4 Bill Receipt", amount: 2800 * mult, status: "Completed", type: "income" },
+        ],
+        meetings: [
+          {
+            id: 1,
+            title: 'Weekly Kitchen Ops & Menu Sync',
+            date: 'Today',
+            time: '16:00',
+            duration: '45 mins',
+            priority: 'High',
+            type: 'In-Person',
+            participants: ['Vikram Singh', 'Neha Patel', 'Rohan Das'],
+            agenda: 'Review ingredients waste logs, chef shift hours, and menu margins.',
+            link: 'Manager Office',
+            syncedWith: ['Google Calendar'],
+            reminders: ['15m before'],
+            status: 'Upcoming',
+            brief: 'AI Briefing: Popular items sales rose 14% while delivery delays peaked at dinner hours. Proposed adding 2 backup delivery riders.',
+            notes: null,
+            tasksCreated: false
+          }
         ]
       };
     case 'Hospital':
@@ -141,6 +162,26 @@ function getSandboxData(industry, currencySymbol) {
           { id: "TX-2002", date: "Yesterday", desc: "Pharmacy Stock Refill Delivery", amount: -45000 * mult, status: "Completed", type: "expense" },
           { id: "TX-2003", date: "Yesterday", desc: "OPD Consultation Fees Collected", amount: 24000 * mult, status: "Completed", type: "income" },
           { id: "TX-2004", date: "3 days ago", desc: "Medical Waste Disposal Service", amount: -8500 * mult, status: "Completed", type: "expense" },
+        ],
+        meetings: [
+          {
+            id: 1,
+            title: 'ICU Telemetry Patient Load Sync',
+            date: 'Today',
+            time: '09:00',
+            duration: '45 mins',
+            priority: 'High',
+            type: 'In-Person',
+            participants: ['Dr. Amit Shah', 'Nurse Sunita Pillai'],
+            agenda: 'Audit ICU bed load registry, examine telemetry logs, and coordinate shift rotations.',
+            link: 'Conference Room B',
+            syncedWith: ['Microsoft Outlook'],
+            reminders: ['15m before', '1h before'],
+            status: 'Upcoming',
+            brief: 'AI Briefing: Dynamic hospital analytics report prepared. Total billing pipeline active. Patient registry stands at 3 active patients.',
+            notes: null,
+            tasksCreated: false
+          }
         ]
       };
     case 'Software Company':
@@ -171,6 +212,54 @@ function getSandboxData(industry, currencySymbol) {
           { id: "TX-3003", date: "Yesterday", desc: "AWS Server Infrastructure Billing", amount: -124500 * mult, status: "Completed", type: "expense" },
           { id: "TX-3004", date: "Yesterday", desc: "Marketing Campaign Google Ads", amount: -25000 * mult, status: "Completed", type: "expense" },
           { id: "TX-3005", date: "3 days ago", desc: "Global Tech Initial Settlement", amount: 150000 * mult, status: "Completed", type: "income" },
+        ],
+        meetings: [
+          {
+            id: 1,
+            title: 'Q3 Product Roadmap & Feature Review',
+            date: 'Today',
+            time: '14:30',
+            duration: '45 mins',
+            priority: 'High',
+            type: 'Video Sync',
+            participants: ['Tony Stark', 'Pepper Potts', 'Sarah Connor'],
+            agenda: 'Review current AI Copilot features, alignment with enterprise goals, and plan the release schedule.',
+            link: 'https://meet.google.com/xyz-qwe-asd',
+            syncedWith: ['Google Calendar'],
+            reminders: ['15m before', '1h before'],
+            status: 'Upcoming',
+            brief: 'AI Briefing: Company revenue is stable at ₹5,72,000. Key discussion points: AI feature stability, dev resource allocation, and Q3 goals.',
+            notes: null,
+            tasksCreated: false
+          },
+          {
+            id: 2,
+            title: 'Sprint Retrospective & Demo',
+            date: 'Yesterday',
+            time: '11:00',
+            duration: '30 mins',
+            priority: 'Medium',
+            type: 'Video Sync',
+            participants: ['Sarah Connor', 'Miles Dyson'],
+            agenda: 'Review completed issues in Sprint 12, demo AI Priority Sorter, and log obstacles.',
+            link: 'https://meet.google.com/abc-mno-xyz',
+            syncedWith: ['Google Calendar', 'Microsoft Outlook'],
+            reminders: ['15m before'],
+            status: 'Completed',
+            brief: 'AI Briefing: Sprint velocity improved by 14%. Focus on payment sandbox tests and API schemas.',
+            notes: {
+              summary: 'Sprint 12 deliverables were demonstrated. The new AI Priority Sorter is stable. Miles raised concern over API timeout during load testing.',
+              decisions: [
+                'Approved rolling out Sprint 12 features to staging.',
+                'Assigned API performance tuning to Miles.'
+              ],
+              tasks: [
+                { assignee: 'Miles Dyson', task: 'Tune API gateway timeout limit to 10s.', due: 'Tomorrow' },
+                { assignee: 'Sarah Connor', task: 'Deploy Sprint 12 QA patch.', due: 'Next Monday' }
+              ]
+            },
+            tasksCreated: true
+          }
         ]
       };
   }
