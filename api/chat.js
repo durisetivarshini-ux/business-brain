@@ -93,6 +93,7 @@ If your response mentions any of the following operational flows, you MUST appen
 async function startGeminiStreamWithRetry(genAI, systemInstruction, history, parts) {
   const modelsToTry = [
     { name: 'gemini-2.5-flash', attemptCount: 2 },
+    { name: 'gemini-flash-lite-latest', attemptCount: 2 },
     { name: 'gemini-2.5-pro', attemptCount: 1 }
   ];
 
