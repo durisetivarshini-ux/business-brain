@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Video, Upload, FileText, CheckSquare, Calendar, Users, Zap, Clock, 
   ChevronRight, Mic, MessageCircle, Download, Loader2, Plus, X, 
-  Play, Square, Activity, Check, AlertCircle, ExternalLink, RefreshCw 
+  Play, Square, Activity, Check, AlertCircle, ExternalLink, RefreshCw,
+  Globe
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,8 +14,8 @@ export function MeetingsPage() {
   const { workspaceConfig: config, businessData, addRecord, currencySymbol } = useWorkspace();
   const industry = config?.customIndustry || 'Software Company';
 
-  const employees = businessData.employees || [];
-  const rawMeetings = businessData.meetings || [];
+  const employees = businessData?.employees || [];
+  const rawMeetings = businessData?.meetings || [];
 
   // Local state
   const [meetings, setMeetings] = useState(rawMeetings);
@@ -51,8 +52,12 @@ export function MeetingsPage() {
   // Keep state in sync with context
   useEffect(() => {
     setMeetings(rawMeetings);
-    if (rawMeetings.length > 0 && !selectedMeeting) {
-      setSelectedMeeting(rawMeetings[0]);
+    if (rawMeetings && rawMeetings.length > 0) {
+      if (!selectedMeeting || !rawMeetings.some(m => m.id === selectedMeeting.id)) {
+        setSelectedMeeting(rawMeetings[0]);
+      }
+    } else {
+      setSelectedMeeting(null);
     }
   }, [rawMeetings]);
 
@@ -427,7 +432,7 @@ export function MeetingsPage() {
                     </div>
                     <div className="flex items-center justify-between text-[9px] text-[#94A3B8] mt-2 border-t border-white/5 pt-2">
                       <span className="flex items-center gap-1"><Calendar size={9}/> {m.date} ({m.time})</span>
-                      <span className="flex items-center gap-1"><Users size={9}/> {m.participants.length}</span>
+                      <span className="flex items-center gap-1"><Users size={9}/> {Array.isArray(m?.participants) ? m.participants.length : 0}</span>
                     </div>
                   </div>
                 ))}
@@ -521,7 +526,7 @@ export function MeetingsPage() {
                   <div className="flex flex-wrap items-center gap-3 text-xs text-[#94A3B8] font-bold">
                     <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[#5B5FFF]"/> {selectedMeeting.date} ({selectedMeeting.time})</span>
                     <span className="flex items-center gap-1.5"><Clock size={14} className="text-[#00D4FF]"/> {selectedMeeting.duration}</span>
-                    <span className="flex items-center gap-1.5"><Users size={14} className="text-[#8B5CF6]"/> {selectedMeeting.participants.join(', ')}</span>
+                    <span className="flex items-center gap-1.5"><Users size={14} className="text-[#8B5CF6]"/> {Array.isArray(selectedMeeting?.participants) ? selectedMeeting.participants.join(', ') : ''}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -578,7 +583,7 @@ export function MeetingsPage() {
                         <Check size={12} /> Key Decisions Resolved
                       </h4>
                       <ul className="space-y-2">
-                        {selectedMeeting.notes.decisions.map((d, i) => (
+                        {Array.isArray(selectedMeeting?.notes?.decisions) && selectedMeeting.notes.decisions.map((d, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-white/90 bg-white/5 p-3 rounded-lg border border-white/5">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] mt-1.5 shrink-0"></span>
                             {d}
@@ -593,7 +598,7 @@ export function MeetingsPage() {
                         <CheckSquare size={12} /> Sync Action Items (Pushed to Workspace Tasks)
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {selectedMeeting.notes.tasks.map((t, i) => (
+                        {Array.isArray(selectedMeeting?.notes?.tasks) && selectedMeeting.notes.tasks.map((t, i) => (
                           <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl flex flex-col gap-2">
                             <div className="flex justify-between items-center text-[10px] text-[#94A3B8] font-bold">
                               <span>Assignee: {t.assignee}</span>
@@ -615,7 +620,7 @@ export function MeetingsPage() {
                       <p className="text-[10px] text-[#94A3B8] mt-0.5">Event is synchronized with external enterprise calendar pipelines.</p>
                     </div>
                     <div className="flex gap-2">
-                      {selectedMeeting.syncedWith.map(cal => (
+                      {Array.isArray(selectedMeeting?.syncedWith) && selectedMeeting.syncedWith.map(cal => (
                         <span key={cal} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded text-[9px] font-bold text-white flex items-center gap-1">
                           <Globe size={10} className="text-[#5B5FFF]" /> {cal}
                         </span>
