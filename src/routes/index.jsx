@@ -102,7 +102,6 @@ export function AppRoutes() {
               {/* Global / User */}
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="profile" element={<ProfilePage />} />
-              <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>
         </Routes>

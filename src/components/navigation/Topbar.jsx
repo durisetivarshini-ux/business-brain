@@ -180,12 +180,6 @@ export function Topbar() {
                       View Profile
                     </button>
                     <button 
-                      onClick={() => { navigate('/app/settings'); setShowDropdown(false); }}
-                      className="flex items-center gap-3 px-3 py-2 text-xs text-white hover:bg-white/5 rounded-xl transition-colors w-full text-left cursor-pointer"
-                    >
-                      Settings
-                    </button>
-                    <button 
                       onClick={() => { navigate('/app'); setShowDropdown(false); }}
                       className="flex items-center gap-3 px-3 py-2 text-xs text-white hover:bg-white/5 rounded-xl transition-colors w-full text-left cursor-pointer"
                     >
@@ -255,7 +249,6 @@ export function Topbar() {
                   { name: "Sales Pipeline", desc: "View deals and pipeline metrics", path: "/app/sales" },
                   { name: "Finance Ledger", desc: "Check budgeting, cash flows, and transactions", path: "/app/finance" },
                   { name: "HRMS Staff Directory", desc: "Manage employees profiles and roster", path: "/app/hrms" },
-                  { name: "Settings & Profile", desc: "Configure localization and business parameters", path: "/app/settings" },
                   // Customers (CRM)
                   { name: "Acme Corp (Customer)", desc: "CRM - Enterprise Segment Client", path: "/app/crm" },
                   { name: "Global Tech (Customer)", desc: "CRM - VIP Segment Client", path: "/app/crm" },
@@ -264,9 +257,6 @@ export function Topbar() {
                   { name: "Varshini Duriseti (Staff)", desc: "HRMS - Software Architect", path: "/app/hrms" },
                   { name: "John Doe (Staff)", desc: "HRMS - Support Lead", path: "/app/hrms" },
                   { name: "Sarah Connor (Staff)", desc: "HRMS - Sales Director", path: "/app/hrms" },
-                  // Projects (Development)
-                  { name: "Clustered Database Sync (Project)", desc: "CI/CD Deployment & Test Pipelines", path: "/app/industry/development" },
-                  { name: "GraphQL API Gateway (Project)", desc: "CI/CD Deployment & Test Pipelines", path: "/app/industry/development" },
                   // Invoices
                   { name: "Invoice INV-2026-0412 (Finance)", desc: "₹12,500 - Acme Corp - Completed", path: "/app/finance" },
                   { name: "Invoice INV-2026-0814 (Finance)", desc: "₹45,000 - Quantum AI - Pending", path: "/app/finance" },

@@ -61,7 +61,6 @@ export function Sidebar({ collapsed, setCollapsed }) {
     businessItems.push({ name: 'HRMS', icon: <Users size={18} />, path: '/app/hrms' });
     businessItems.push({ name: 'Documents', icon: <FileText size={18} />, path: '/app/documents' });
   } else if (industry === 'Software Company') {
-    businessItems.push({ name: 'Projects', icon: <Briefcase size={18} />, path: '/app/industry/development' });
     businessItems.push({ name: 'Clients', icon: <Users size={18} />, path: '/app/industry/qa' });
     businessItems.push({ name: 'CRM', icon: <Users size={18} />, path: '/app/crm' });
     businessItems.push({ name: 'Finance', icon: <Wallet size={18} />, path: '/app/finance' });
@@ -111,13 +110,7 @@ export function Sidebar({ collapsed, setCollapsed }) {
     });
   }
 
-  // 5. SYSTEM
-  menuCategories.push({
-    title: "SYSTEM",
-    items: [
-      { name: 'Settings', icon: <Settings size={18} />, path: '/app/settings' }
-    ]
-  });
+  // SYSTEM category removed
 
 
 
