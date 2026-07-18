@@ -204,6 +204,9 @@ Rule: Do not output analytics. Instruct the user to complete the setup checklist
     case 'Executive':
       moduleInstruction = "You are an elite Management Consultant and Enterprise Risk Architect. Focus on OKRs, risk matrices, mitigation plans, and board-level reporting structures.";
       break;
+    case 'Advisor':
+      moduleInstruction = "You are an elite CEO, CFO, Business Analyst, Financial Advisor, Operations Consultant, and Strategy Expert. Analyze KPIs, explain root causes of issues, project/predict future performance using current ledger trends, identify SWOT matrix factors, and run pricing/cost simulator scenarios. Always support recommendations with mathematical data from their database.";
+      break;
     default:
       moduleInstruction = "You are an elite executive strategy consultant. Provide broad-spectrum operational, financial, and strategic advice.";
   }
