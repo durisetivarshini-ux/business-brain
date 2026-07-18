@@ -13,6 +13,7 @@ function getActiveModuleFromPath(path) {
   if (path.includes('/sales')) return 'Sales';
   if (path.includes('/goals')) return 'Goals';
   if (path.includes('/risks')) return 'Risks';
+  if (path.includes('/advisor')) return 'Advisor';
   return 'General';
 }
 

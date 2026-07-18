@@ -265,7 +265,7 @@ export function AdvisorPage() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
     {
-      role: 'ai',
+      role: 'assistant',
       content: `Good morning, **${userProfile.name}**. I am your executive AI Advisor for **${companyName}** (${industry} sector). I have compiled the active ledger and customer records. 
 
 Here is our current baseline:
@@ -301,7 +301,7 @@ Would you like me to run a SWOT analysis, audit cost structures, or run a decisi
       
       const stream = await generateAIResponse(msg, historyPayload);
       
-      setMessages(prev => [...prev, { role: 'ai', content: '' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       
       let fullContent = '';
       for await (const chunk of stream) {
@@ -311,7 +311,7 @@ Would you like me to run a SWOT analysis, audit cost structures, or run a decisi
         setMessages(prev => {
           const next = [...prev];
           const last = next[next.length - 1];
-          if (last && last.role === 'ai') {
+          if (last && last.role === 'assistant') {
             last.content = cleaned;
           }
           return next;
@@ -320,7 +320,7 @@ Would you like me to run a SWOT analysis, audit cost structures, or run a decisi
     } catch (error) {
       toast.error("Failed to connect to the B.BRAIN Advisor server.");
       setMessages(prev => [...prev, { 
-        role: 'ai', 
+        role: 'assistant', 
         content: "I encountered an error querying the strategy engine. Please verify that your backend server is online and your Gemini API keys are configured correctly." 
       }]);
     } finally {
@@ -416,7 +416,7 @@ Please calculate gross margin shifts using our current database counts (Customer
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-black/10">
             {messages.map((msg, i) => (
               <div key={i}>
-                {msg.role === 'ai' ? (
+                {msg.role === 'assistant' ? (
                   <div className="flex gap-4 max-w-[90%]">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#5B5FFF] to-[#00D4FF] shrink-0 flex items-center justify-center mt-1">
                       <Bot size={16} className="text-white" />
