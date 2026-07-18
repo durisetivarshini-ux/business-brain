@@ -22,41 +22,83 @@ If the user asks for a chart, include a JSON block in this exact format:
 Make sure all suggestions, dashboards, and metrics are fully personalized to the active industry, business type, and department.`;
 
 function getSystemInstruction(context = {}) {
-  const company = context.companyName || 'Business Brain Enterprise';
-  const industry = context.customIndustry || 'Enterprise Software';
-  const stage = context.businessStage || 'Growing';
-  const businessType = context.businessType || 'Private Corporation';
-  const employeeCount = context.employeeCount || '26-50 Employees';
-  const annualRevenue = context.annualRevenue || 'Under ₹10 Lakhs';
+  const biz = context.businessContext || {};
+  const company = biz.company?.name || context.companyName || 'Business Brain Enterprise';
+  const industry = biz.company?.industry || context.customIndustry || 'Enterprise Software';
+  const stage = biz.company?.stage || context.businessStage || 'Growing';
+  const businessType = biz.company?.type || context.businessType || 'Private Corporation';
+  const employeeCount = biz.company?.teamSize || context.employeeCount || '26-50 Employees';
+  const annualRevenue = biz.company?.annualRevenueRange || context.annualRevenue || 'Under ₹10 Lakhs';
   const activeModule = context.activeModule || 'General';
-
-  const metrics = context.businessMetrics || {};
-  const hasRealData = metrics.hasRealData;
-  const currencySymbol = context.currency === 'USD' ? '$' : context.currency === 'EUR' ? '€' : '₹';
+  const currencySymbol = biz.company?.currency || '$';
 
   let dataContext = "";
-  if (hasRealData) {
-    const netProfit = (metrics.totalRevenue || 0) - (metrics.totalExpenses || 0);
-    const profitMargin = metrics.totalRevenue > 0 ? Math.round((netProfit / metrics.totalRevenue) * 100) : 0;
+  if (biz.hasRealData) {
     dataContext = `
-REAL OPERATIONAL DATABASE METRICS:
-The user has entered or imported their actual operational data. All calculations, predictions, margins, and operational feedback MUST be mathematically derived from these figures:
-- Total Logged Revenue: ${currencySymbol}${metrics.totalRevenue?.toLocaleString()}
-- Total Logged Expenses: ${currencySymbol}${metrics.totalExpenses?.toLocaleString()}
-- Net Profit: ${currencySymbol}${netProfit.toLocaleString()}
-- Gross Profit Margin: ${profitMargin}%
-- Onboarded Customers Count: ${metrics.customerCount}
-- Active Employees Count: ${metrics.employeeCount}
-- Catalog Products Count: ${metrics.productCount}
-- Recent Ledger Items: ${JSON.stringify(metrics.recentTransactions || [])}
-- Scheduled/Completed Meetings: ${JSON.stringify(metrics.meetings || [])}
+# LIVE BUSINESS WORKSPACE DATABASE CONTEXT:
+All calculations, predictions, margins, and operational strategy feedback MUST be mathematically derived from this live database context.
 
-Rule: Never hallucinate or present fake numbers. Compute margins and forecasts directly from this live data. If queried about meetings, syncs, countdowns, or agendas, read the meetings list above and respond naturally (mentioning time, attendees, link, and action tasks).`;
+## Company Details:
+- Name: ${company}
+- Sector/Industry: ${industry}
+- Stage: ${stage}
+- Type: ${businessType}
+- Size: ${employeeCount}
+- Revenue Range: ${annualRevenue}
+- Currency Symbol: ${currencySymbol}
+- Timing: ${biz.company?.officeTiming || '09:00 - 18:00'}
+- Working Days: ${biz.company?.workingDays || '5 Days'}
+
+## Enabled Modules:
+${JSON.stringify(biz.enabledModules || [])}
+
+## CRM (Leads & Customers):
+- Total Customers: ${biz.crm?.totalCustomers || 0}
+- Customer Pipeline Stages: ${JSON.stringify(biz.crm?.pipelineStages || [])}
+- Active Customer Profiles: ${JSON.stringify(biz.crm?.customers || [])}
+
+## Inventory:
+- Total Products: ${biz.inventory?.totalProducts || 0}
+- Products Catalog (SKU, Name, Stock, Price, PurchasePrice, Status): ${JSON.stringify(biz.inventory?.products || [])}
+
+## Finance Ledger:
+- Total Logged Revenue: ${currencySymbol}${biz.finance?.totalRevenue?.toLocaleString()}
+- Total Logged Expenses: ${currencySymbol}${biz.finance?.totalExpenses?.toLocaleString()}
+- Gross Profit Margin: ${biz.finance?.profitMargin || '0%'}
+- Transactions Count: ${biz.finance?.transactionsCount || 0}
+- Recent Transaction Items: ${JSON.stringify(biz.finance?.recentTransactions || [])}
+
+## Human Resources (HR):
+- Total Employees: ${biz.hr?.totalEmployees || 0}
+- Employees List (Name, Role, Department, Performance): ${JSON.stringify(biz.hr?.employees || [])}
+- Leave Policy: ${biz.hr?.leavePolicy || '18 Paid Leaves'}
+- Attendance Method: ${biz.hr?.attendanceMethod || 'Biometric'}
+
+## Meetings:
+- Scheduled Meetings (Title, Date, Time, Attendees, Action Tasks Count): ${JSON.stringify(biz.meetings || [])}
+
+## Tasks/OKRs:
+- Active Tasks (Title, Status, Priority): ${JSON.stringify(biz.tasks || [])}
+
+## Goals/KPIs:
+- Active Goal KPIs: ${JSON.stringify(biz.goals || [])}
+
+## Branches:
+- Branch Offices: ${JSON.stringify(biz.branches || [])}
+
+### MANDATORY INTEGRITY RULES:
+1. Do not invent, hallucinate, or assume any information that is not explicitly present in the data lists above.
+2. If queried about a module's metrics or data that is empty or contains no records (e.g. no products exist in the inventory catalog, or no meetings are scheduled), you MUST clearly and explicitly state that the data is unavailable in the database. For example: "I see that you currently have no products registered in your inventory. To analyze your pricing strategy, please add products to your Inventory module."
+`;
   } else {
     dataContext = `
-NO OPERATIONAL DATABASE DATA:
+# NO OPERATIONAL DATABASE DATA FOUND:
 The user has not entered or imported any business records (employees, inventory, customers, transactions) to the platform yet. 
-Rule: Do not output analytics. Instruct the user to complete the setup checklists, import their spreadsheets (CSV/Excel), or connect their accounting software (Shopify, QuickBooks, Zoho, Tally) using the Admin Setup Wizard on the dashboard. Explain that this will unlock live dashboard charts and AI analytical insights.`;
+
+### MANDATORY INTEGRITY RULES:
+1. Do not output mock data, fake metrics, or hypothetical analytics.
+2. Instruct the user to complete the setup checklists, import their spreadsheets (CSV/Excel), or connect their accounting software (Shopify, QuickBooks, Zoho, Tally) using the Admin Setup Wizard on the dashboard to unlock dashboard charts and AI strategic recommendations.
+`;
   }
 
   let moduleInstruction = "";
