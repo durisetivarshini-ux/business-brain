@@ -577,20 +577,34 @@ async function dispatchEmail({ to, subject, html }) {
 }
 
 // Trigger n8n Webhook Dispatcher
+// Trigger n8n Webhook Dispatcher with Automatic Retry
 const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || '';
 
-async function triggerN8nWebhook(payload) {
+async function triggerN8nWebhookWithRetry(payload, attempt = 1, maxAttempts = 3) {
   if (!n8nWebhookUrl) {
-    console.warn('[n8n] N8N_WEBHOOK_URL not configured. Skipping webhook dispatch.');
+    console.warn('[n8n Webhook] N8N_WEBHOOK_URL not configured. Skipping webhook.');
     return null;
   }
+
   try {
-    const response = await axios.post(n8nWebhookUrl, payload);
-    console.log('[n8n] Webhook triggered successfully. Status:', response.status);
+    console.log(`[n8n Webhook] Triggering webhook (Attempt ${attempt}/${maxAttempts})... URL: ${n8nWebhookUrl}`);
+    const response = await axios.post(n8nWebhookUrl, payload, { timeout: 8000 });
+    console.log(`[n8n Webhook SUCCESS] Webhook accepted. Status: ${response.status}`);
     return response.data;
   } catch (error) {
-    console.error('[n8n] Error triggering webhook:', error.message);
-    throw error;
+    console.error(`[n8n Webhook ERROR] Attempt ${attempt} failed:`, error.message);
+    if (attempt < maxAttempts) {
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`[n8n Webhook RETRY] Retrying in ${delay}ms...`);
+      return new Promise((resolve) => {
+        setTimeout(async () => {
+          resolve(await triggerN8nWebhookWithRetry(payload, attempt + 1, maxAttempts));
+        }, delay);
+      });
+    } else {
+      console.error(`[n8n Webhook FAILURE] Failed to trigger n8n workflow after ${maxAttempts} attempts.`);
+      return null;
+    }
   }
 }
 
@@ -608,16 +622,6 @@ function clearMeetingReminders(meetingId) {
 }
 
 async function sendReminderEmail(meeting, ownerEmail, reminderType) {
-  const cleanId = String(meeting.id);
-  const meetings = await getMeetings();
-  const meetingRecord = meetings.find(m => String(m.id) === cleanId);
-  
-  // Prevent duplicate execution checking
-  if (meetingRecord && meetingRecord.remindersSent && meetingRecord.remindersSent[reminderType]) {
-    console.log(`[SMTP ENGINE] Reminder ${reminderType} already dispatched for ID ${meeting.id}. Preventing duplicate.`);
-    return { success: true, message: 'Already sent' };
-  }
-
   const timezone = meeting.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
 
   // Build recipients list
@@ -695,22 +699,74 @@ async function sendReminderEmail(meeting, ownerEmail, reminderType) {
   </div>
   `;
 
-  const info = await dispatchEmail({
+  return await dispatchEmail({
     to: recipientEmails,
     subject: `[B.BRAIN Reminder: ${reminderType}] ${meeting.title}`,
     html: htmlContent
   });
+}
 
-  // Mark status as sent to avoid duplicates
-  if (meetingRecord) {
-    if (!meetingRecord.remindersSent) {
-      meetingRecord.remindersSent = {};
-    }
-    meetingRecord.remindersSent[reminderType] = true;
-    await saveMeetings(meetings);
+// sendReminderEmailWithRetry with Exponential Backoff and status updates
+async function sendReminderEmailWithRetry(meeting, ownerEmail, reminderType, attempt = 1, maxAttempts = 5) {
+  const cleanId = String(meeting.id);
+  const meetings = await getMeetings();
+  const meetingRecord = meetings.find(m => String(m.id) === cleanId);
+  
+  if (meetingRecord?.deliveryStatus?.[reminderType]?.sent) {
+    console.log(`[SMTP ENGINE] Reminder ${reminderType} already dispatched successfully for ID ${meeting.id}. Blocking duplicates.`);
+    return;
   }
 
-  return info;
+  try {
+    console.log(`[SMTP ENGINE] Dispatching email reminder "${reminderType}" for "${meeting.title}" (Attempt ${attempt}/${maxAttempts})...`);
+    const info = await sendReminderEmail(meeting, ownerEmail, reminderType);
+    
+    // Save success logs to database
+    if (meetingRecord) {
+      if (!meetingRecord.deliveryStatus) meetingRecord.deliveryStatus = {};
+      meetingRecord.deliveryStatus[reminderType] = {
+        sent: true,
+        failed: false,
+        time: new Date().toISOString(),
+        retries: attempt - 1
+      };
+      await saveMeetings(meetings);
+    }
+    console.log(`[SMTP ENGINE SUCCESS] Reminder "${reminderType}" delivered to ${ownerEmail}.`);
+    return info;
+  } catch (err) {
+    console.error(`[SMTP ENGINE ERROR] Attempt ${attempt} failed for reminder "${reminderType}":`, err.message);
+    
+    // Log failure metrics
+    if (meetingRecord) {
+      if (!meetingRecord.deliveryStatus) meetingRecord.deliveryStatus = {};
+      meetingRecord.deliveryStatus[reminderType] = {
+        sent: false,
+        failed: true,
+        errorMessage: err.message,
+        retries: attempt,
+        time: new Date().toISOString()
+      };
+      await saveMeetings(meetings);
+    }
+
+    if (attempt < maxAttempts) {
+      const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s, 16s...
+      console.log(`[SMTP RETRY] Retrying in ${delay}ms...`);
+      return new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            resolve(await sendReminderEmailWithRetry(meeting, ownerEmail, reminderType, attempt + 1, maxAttempts));
+          } catch (e) {
+            reject(e);
+          }
+        }, delay);
+      });
+    } else {
+      console.error(`[SMTP ENGINE FAILURE] Maximum attempts reached. Delivery for "${reminderType}" failed.`);
+      throw err;
+    }
+  }
 }
 
 function scheduleMeetingReminders(meeting, ownerEmail) {
@@ -727,7 +783,7 @@ function scheduleMeetingReminders(meeting, ownerEmail) {
   const meetingDateLocal = new Date(year, month - 1, day, hours, minutes, 0);
   const meetingEpoch = meetingDateLocal.getTime();
 
-  (meeting.reminders || []).forEach((reminder, index) => {
+  (meeting.reminders || []).forEach((reminder) => {
     let offsetMs = 0;
     if (reminder.includes('15m')) offsetMs = 15 * 60 * 1000;
     else if (reminder.includes('1h')) offsetMs = 60 * 60 * 1000;
@@ -738,10 +794,10 @@ function scheduleMeetingReminders(meeting, ownerEmail) {
     const delay = triggerEpoch - Date.now();
 
     if (delay > 0) {
-      const jobKey = `${mId}-${index}`;
+      const jobKey = `${mId}-${reminder}`;
       const timeoutObj = setTimeout(async () => {
         try {
-          await sendReminderEmail(meeting, ownerEmail, reminder);
+          await sendReminderEmailWithRetry(meeting, ownerEmail, reminder);
           activeJobs.delete(jobKey);
         } catch (e) {
           console.error(`[SMTP ENGINE ERROR] Failed to dispatch reminder ${reminder} for ID ${meeting.id}:`, e);
@@ -756,16 +812,62 @@ function scheduleMeetingReminders(meeting, ownerEmail) {
 async function initSchedulerOnBoot() {
   console.log('[MEETINGS ENGINE] Initializing scheduler recovery on server boot...');
   try {
+    // 1. Verify SMTP connection on startup
+    const transporter = await getTransporter();
+    if (transporter && typeof transporter.verify === 'function') {
+      transporter.verify((error, success) => {
+        if (error) {
+          console.error('[SMTP BOOT ERROR] Gmail/Custom SMTP Connection verification failed:', error.message);
+        } else {
+          console.log('[SMTP BOOT SUCCESS] Gmail/Custom SMTP Connection verified successfully. Ready to send emails!');
+        }
+      });
+    }
+
+    // 2. Recover scheduled crons and run missed timeouts
     const meetings = await getMeetings();
-    let count = 0;
-    meetings.forEach(meeting => {
+    const now = Date.now();
+    let recoveredCount = 0;
+    let missedDispatchedCount = 0;
+
+    for (const meeting of meetings) {
       if (meeting.status === 'Upcoming' || meeting.status === 'Scheduled') {
         const ownerEmail = meeting.organizer?.email || 'owner@businessbrain.ai';
         scheduleMeetingReminders(meeting, ownerEmail);
-        count++;
+        recoveredCount++;
+
+        // Fail-safe dispatcher for missed schedules
+        const dateParts = meeting.date.split('-');
+        const timeParts = meeting.time.split(':');
+        if (dateParts.length >= 3 && timeParts.length >= 2) {
+          const [year, month, day] = dateParts.map(Number);
+          const [hours, minutes] = timeParts.map(Number);
+          const meetingEpoch = new Date(year, month - 1, day, hours, minutes, 0).getTime();
+
+          (meeting.reminders || []).forEach(async (reminder) => {
+            let offsetMs = 0;
+            if (reminder.includes('15m')) offsetMs = 15 * 60 * 1000;
+            else if (reminder.includes('1h')) offsetMs = 60 * 60 * 1000;
+            else if (reminder.includes('1d')) offsetMs = 24 * 60 * 60 * 1000;
+
+            const triggerEpoch = meetingEpoch - offsetMs;
+            const deliveryInfo = meeting.deliveryStatus?.[reminder] || {};
+
+            // If scheduled time has passed but meeting hasn't started yet, and it wasn't sent
+            if (triggerEpoch < now && !deliveryInfo.sent && meetingEpoch > now) {
+              console.log(`[MEETINGS ENGINE] Recovered missed trigger for "${meeting.title}" (${reminder}). Sending now.`);
+              missedDispatchedCount++;
+              try {
+                await sendReminderEmailWithRetry(meeting, ownerEmail, reminder);
+              } catch (e) {
+                console.error(`[MEETINGS ENGINE ERROR] Failed recovering missed trigger for "${meeting.title}":`, e.message);
+              }
+            }
+          });
+        }
       }
-    });
-    console.log(`[MEETINGS ENGINE] Successfully recovered ${count} active meeting timers on boot.`);
+    }
+    console.log(`[MEETINGS ENGINE] Recovered ${recoveredCount} meetings. Dispatched ${missedDispatchedCount} missed boot triggers.`);
   } catch (err) {
     console.error('[MEETINGS ENGINE ERROR] Failed to recover scheduler on boot:', err);
   }
@@ -785,11 +887,12 @@ app.post('/api/meetings/schedule', async (req, res) => {
     
     let meetingToSave = { ...meeting };
     if (existingIdx !== -1) {
-      meetingToSave.remindersSent = meetings[existingIdx].remindersSent || {};
+      // Preserve deliveryStatus details across edits
+      meetingToSave.deliveryStatus = meetings[existingIdx].deliveryStatus || {};
       meetings[existingIdx] = meetingToSave;
       console.log(`[MEETINGS ENGINE] Rescheduled meeting ID ${meeting.id} updated in database.`);
     } else {
-      meetingToSave.remindersSent = {};
+      meetingToSave.deliveryStatus = {};
       meetings.push(meetingToSave);
       console.log(`[MEETINGS ENGINE] New meeting ID ${meeting.id} saved to database.`);
     }
@@ -809,22 +912,12 @@ app.post('/api/meetings/schedule', async (req, res) => {
       meetingLink: meetingToSave.link
     };
     
-    let webhookResult = null;
-    try {
-      webhookResult = await triggerN8nWebhook(n8nPayload);
-    } catch (err) {
-      console.warn('[n8n Webhook] n8n URL not configured or offline, proceeding with local SMTP schedules.');
-    }
-    
-    // Dispatch an instant test alert email immediately so the user can verify receipt/preview URL instantly!
-    console.log(`[SMTP TEST] Triggering instant n8n SMTP dispatch to ${ownerEmail}...`);
-    const testResult = await sendReminderEmail(meetingToSave, ownerEmail, 'Instant Test Notification');
+    triggerN8nWebhookWithRetry(n8nPayload); // Non-blocking background trigger with retry
     
     res.json({ 
       success: true, 
       message: 'Meeting scheduled successfully.',
-      previewUrl: testResult.previewUrl,
-      webhookDispatched: !!webhookResult
+      deliveryStatus: meetingToSave.deliveryStatus
     });
   } catch (e) {
     console.error('[MEETING SCHEDULER ROUTE ERROR]', e);
@@ -870,16 +963,49 @@ app.post('/api/meetings/send-reminder-email', async (req, res) => {
     }
     
     const ownerEmail = meeting.organizer?.email || 'owner@businessbrain.ai';
-    const result = await sendReminderEmail(meeting, ownerEmail, reminderType);
+    const result = await sendReminderEmailWithRetry(meeting, ownerEmail, reminderType);
     
     res.json({
       success: true,
       message: `Reminder ${reminderType} dispatched successfully from webhook.`,
-      previewUrl: result.previewUrl
+      previewUrl: result?.previewUrl
     });
   } catch (err) {
     console.error('[SMTP WEBHOOK DISPATCH ERROR]', err);
     res.status(500).json({ success: false, message: 'Error sending webhook email.' });
+  }
+});
+
+// Developer SMTP connection verification endpoint
+app.post('/api/meetings/test-email', async (req, res) => {
+  const { ownerEmail } = req.body;
+  if (!ownerEmail) {
+    return res.status(400).json({ success: false, message: 'Missing ownerEmail parameter.' });
+  }
+
+  try {
+    console.log(`[SMTP TEST] Direct request received for /api/meetings/test-email to ${ownerEmail}...`);
+    const testMeeting = {
+      id: 'test-conn-' + Date.now(),
+      title: 'B.BRAIN SMTP Verification Connection Test',
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      duration: '30 min',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      participants: ['System Diagnostic Agent'],
+      link: 'http://localhost:3001/app/meetings',
+      agenda: 'Confirming that Google App Password or Custom SMTP authentication is successful and TLS routing is active.'
+    };
+
+    const info = await sendReminderEmail(testMeeting, ownerEmail, 'Instant Connection Diagnostic Test');
+    res.json({
+      success: true,
+      message: 'SMTP Verification Email sent successfully!',
+      previewUrl: info.previewUrl
+    });
+  } catch (err) {
+    console.error('[SMTP TEST ERROR] Direct connection test failed:', err);
+    res.status(500).json({ success: false, message: `SMTP connection verification failed: ${err.message}` });
   }
 });
 

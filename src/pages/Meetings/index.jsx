@@ -210,6 +210,28 @@ export function MeetingsPage() {
     addN8nLog(`n8n Workflow execution completed.`, 'success');
   };
 
+  const handleSendTestEmail = async () => {
+    const toastId = toast.loading('Sending SMTP connection test email...', { id: 'smtp-test' });
+    try {
+      const response = await fetch('/api/meetings/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ownerEmail })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('SMTP Connection Test Email sent successfully! Check your inbox.', { id: 'smtp-test' });
+        addN8nLog(`[SMTP Test] Direct SMTP connection test email dispatched successfully to ${ownerEmail}.`, 'success');
+      } else {
+        toast.error(`SMTP Connection Failed: ${data.message}`, { id: 'smtp-test' });
+        addN8nLog(`[SMTP Test ERROR] SMTP test email connection failed: ${data.message}`, 'error');
+      }
+    } catch (err) {
+      toast.error(`Error connecting to backend: ${err.message}`, { id: 'smtp-test' });
+      addN8nLog(`[SMTP Test ERROR] API request failed: ${err.message}`, 'error');
+    }
+  };
+
   // Schedule Meeting handler
   const handleScheduleSubmit = (e) => {
     e.preventDefault();
@@ -943,10 +965,59 @@ export function MeetingsPage() {
                           <p className="mt-1 leading-relaxed text-slate-600 font-medium">{selectedMeeting.agenda}</p>
                         </div>
                       )}
+
+                      {/* Email Status Dashboard */}
+                      <div className="border-t border-slate-100 pt-4 mt-4">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-3">Email Notification Logs</p>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-2">
+                          {['24h', '1h', '15m', 'started'].map((type) => {
+                            const isScheduled = (selectedMeeting.reminders || []).some(r => {
+                              if (type === '24h') return r.includes('1d') || r.includes('24h');
+                              if (type === '1h') return r.includes('1h');
+                              if (type === '15m') return r.includes('15m');
+                              if (type === 'started') return r.includes('start');
+                              return false;
+                            });
+
+                            const deliveryInfo = selectedMeeting.deliveryStatus?.[type] || {};
+                            const sent = deliveryInfo.sent || false;
+                            const failed = deliveryInfo.failed || false;
+                            const time = deliveryInfo.time ? new Date(deliveryInfo.time).toLocaleTimeString() : '-';
+                            const retries = deliveryInfo.retries || 0;
+                            const errMsg = deliveryInfo.errorMessage || '';
+
+                            return (
+                              <div key={type} className="flex justify-between items-center text-xs border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${isScheduled ? 'bg-indigo-500' : 'bg-slate-300'}`}></span>
+                                  <span className="font-semibold text-slate-700 capitalize">
+                                    {type === '24h' ? '24 Hours Before' : type === '1h' ? '1 Hour Before' : type === '15m' ? '15 Mins Before' : 'At Start'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {isScheduled ? (
+                                    <>
+                                      {sent ? (
+                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Sent ({time})</span>
+                                      ) : failed ? (
+                                        <span className="text-[10px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold" title={errMsg}>Failed (Retries: {retries})</span>
+                                      ) : (
+                                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">Scheduled</span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">Not Configured</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Interactive Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+                    <div className="flex flex-wrap gap-3 justify-center mb-6">
                       <a 
                         href={selectedMeeting.link} 
                         target="_blank" 
@@ -955,6 +1026,13 @@ export function MeetingsPage() {
                       >
                         Join Meeting Link
                       </a>
+                      <button 
+                        type="button" 
+                        onClick={handleSendTestEmail}
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg text-center transition-all flex items-center gap-1.5 justify-center"
+                      >
+                        ⚡ SMTP Connection Test
+                      </button>
                       <button 
                         type="button" 
                         onClick={() => toast.success('Navigating to B.BRAIN Dashboard...')}
