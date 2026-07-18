@@ -311,8 +311,6 @@ If your response mentions any of the following operational flows, you MUST appen
 }
 
 app.post('/api/chat', async (req, res) => {
-  console.log('[BACKEND TRACE] Streaming request received at /api/chat');
-  
   const apiKey = process.env.GEMINI_API_KEY;
   
   // Set headers for Chunked transfer
@@ -330,7 +328,12 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     const { prompt, history = [], attachments = [], context = {} } = req.body;
-    console.log(`[BACKEND TRACE] Prompt: "${prompt?.substring(0, 30)}...", History: ${history.length}, Attachments: ${attachments.length}`);
+    console.log(JSON.stringify({
+      eventType: 'ai_request_routed',
+      endpoint: '/api/chat',
+      activeModule: context.activeModule || 'General',
+      timestamp: new Date().toISOString()
+    }));
 
     await loadMeetingsContext(context);
     const systemInstruction = getSystemInstruction(context);
@@ -352,64 +355,44 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.post('/api/ai/chat', async (req, res) => {
-  console.log('[BACKEND TRACE] JSON request received at /api/ai/chat');
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     console.warn('[BACKEND WARNING] GEMINI_API_KEY is missing.');
     return res.status(200).json({
       success: false,
-      message: "I couldn't reach the AI service. Please try again."
+      message: "AI Error: GEMINI_API_KEY is not configured in the environment."
     });
   }
 
   try {
-    const { message, history = [], attachments = [], context = {} } = req.body;
+    const { message, prompt, history = [], attachments = [], context = {} } = req.body;
+    const rawMessage = message || prompt;
+
+    console.log(JSON.stringify({
+      eventType: 'ai_request_routed',
+      endpoint: '/api/ai/chat',
+      activeModule: context.activeModule || 'General',
+      timestamp: new Date().toISOString()
+    }));
+
     await loadMeetingsContext(context);
     const systemInstruction = getSystemInstruction(context);
-    const genAI = new GoogleGenerativeAI(apiKey);
 
-    const formattedHistory = [];
-    history.forEach(msg => {
-      if (msg.role && msg.content && msg.type !== 'setup' && msg.type !== 'error') {
-        formattedHistory.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content || ' ' }]
-        });
-      }
-    });
+    console.log('[BACKEND TRACE] Routing non-streaming JSON request through AI Service Layer...');
+    const stream = generateContentStream(apiKey, rawMessage, history, systemInstruction, attachments, context);
 
-    const parts = [{ text: message || 'Analyze current state.' }];
-
-    if (attachments && attachments.length > 0) {
-      attachments.forEach(file => {
-        if (file.inlineData) {
-          parts.push({
-            inlineData: {
-              data: file.inlineData.data,
-              mimeType: file.type
-            }
-          });
-        } else if (file.textData) {
-          parts.push({ text: file.textData });
-        }
-      });
-    }
-
-    console.log('[BACKEND TRACE] Fetching non-streaming reply from Gemini with retries...');
-    const result = await startGeminiStreamWithRetry(genAI, systemInstruction, formattedHistory, parts);
-    
     let replyText = '';
-    for await (const chunk of result.stream) {
-      replyText += chunk.text();
+    for await (const chunk of stream) {
+      replyText += chunk;
     }
 
     res.json({ success: true, reply: replyText });
   } catch (error) {
-    console.error('[BACKEND ERROR] All non-streaming retries failed:', error.stack || error);
+    console.error('[BACKEND ERROR] AI Service JSON query failed:', error.stack || error);
     res.status(200).json({
       success: false,
-      message: "I couldn't reach the AI service. Please try again."
+      message: `AI Error: ${error.message}. Please check your connection or key.`
     });
   }
 });

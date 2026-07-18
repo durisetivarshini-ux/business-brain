@@ -225,7 +225,13 @@ export default async function handler(req, res) {
 
     const systemInstruction = getSystemInstruction(context);
 
-    console.log(`[${requestId}] Routing serverless request through AI Service Layer...`);
+    console.log(JSON.stringify({
+      eventType: 'ai_request_routed',
+      endpoint: '/api/chat',
+      activeModule: context.activeModule || 'General',
+      timestamp: new Date().toISOString()
+    }));
+
     const stream = generateContentStream(apiKey, rawMessage, history, systemInstruction, attachments, context);
 
     let replyText = '';
