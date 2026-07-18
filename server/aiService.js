@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { toolDeclarations, executeTool } from './tools.js';
 
 let aiClientInstance = null;
 
@@ -90,9 +91,10 @@ export function sanitizeHistory(rawHistory) {
  * @param {Array} history Conversation history.
  * @param {string} systemInstruction Core module behaviors.
  * @param {Array} attachments Multimodal/Inline text documents.
+ * @param {Object} context Workspace session context.
  * @returns {AsyncGenerator<string>} Yields response chunks as text.
  */
-export async function* generateContentStream(apiKey, prompt, history = [], systemInstruction = '', attachments = []) {
+export async function* generateContentStream(apiKey, prompt, history = [], systemInstruction = '', attachments = [], context = {}) {
   validateRequest(prompt, history);
   const ai = getAIClient(apiKey);
 
@@ -138,23 +140,68 @@ export async function* generateContentStream(apiKey, prompt, history = [], syste
       try {
         console.log(`[AI SERVICE CONNECTIVITY] Querying model "${modelConfig.name}" (Attempt ${attempt}/${modelConfig.attemptCount})...`);
         
-        // Start a chat session
+        // Start a chat session with secure tools enabled
         const chat = ai.chats.create({
           model: modelConfig.name,
           history: sanitizedHistory,
           config: {
-            systemInstruction: systemInstruction
+            systemInstruction: systemInstruction,
+            tools: [{ functionDeclarations: toolDeclarations }]
           }
         });
 
-        // Send message stream
-        const responseStream = await chat.sendMessageStream({
+        // Send initial message stream
+        let responseStream = await chat.sendMessageStream({
           message: parts
         });
 
-        for await (const chunk of responseStream) {
-          if (chunk.text) {
-            yield chunk.text;
+        let currentStream = responseStream;
+        let hasExecutedTools = true;
+
+        while (hasExecutedTools) {
+          hasExecutedTools = false;
+          let functionCalls = [];
+
+          for await (const chunk of currentStream) {
+            // Check if the model requests a function call execution
+            if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+              functionCalls = chunk.functionCalls;
+              break; 
+            }
+            if (chunk.text) {
+              yield chunk.text;
+            }
+          }
+
+          if (functionCalls.length > 0) {
+            const toolResults = [];
+            for (const call of functionCalls) {
+              yield `[Executing Tool: ${call.name}...]`;
+              try {
+                const result = await executeTool(call.name, call.args, context);
+                toolResults.push({
+                  functionResponse: {
+                    name: call.name,
+                    response: { result }
+                  }
+                });
+              } catch (toolErr) {
+                console.error(`[AI SERVICE TOOL ERROR] Tool "${call.name}" failed:`, toolErr.message);
+                toolResults.push({
+                  functionResponse: {
+                    name: call.name,
+                    response: { result: { success: false, error: toolErr.message } }
+                  }
+                });
+              }
+            }
+
+            // Return the function execution result back to Gemini and get a new stream
+            console.log('[AI SERVICE CONNECTIVITY] Returning tool response payload to Gemini...');
+            currentStream = await chat.sendMessageStream({
+              message: toolResults
+            });
+            hasExecutedTools = true; 
           }
         }
 

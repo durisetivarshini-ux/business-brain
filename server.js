@@ -336,7 +336,7 @@ app.post('/api/chat', async (req, res) => {
     const systemInstruction = getSystemInstruction(context);
 
     console.log('[BACKEND TRACE] Routing streaming request through AI Service Layer...');
-    const stream = generateContentStream(apiKey, prompt, history, systemInstruction, attachments);
+    const stream = generateContentStream(apiKey, prompt, history, systemInstruction, attachments, context);
     
     for await (const chunk of stream) {
       res.write(chunk);
