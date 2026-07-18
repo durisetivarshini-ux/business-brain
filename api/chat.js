@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContentStream } from '../server/aiService.js';
 
 const SYSTEM_PROMPT = `You are a world-class, premium Enterprise AI Assistant and Business Strategy Advisor.
 Think and respond like an elite CEO, CFO, COO, CTO, and Chief Financial Analyst.
@@ -125,38 +125,6 @@ If your response mentions any of the following operational flows, you MUST appen
 - Opening the BI Analytics Dashboard: [Action: Open Analytics]`;
 }
 
-async function startGeminiStreamWithRetry(genAI, systemInstruction, history, parts) {
-  const modelsToTry = [
-    { name: 'gemini-2.0-flash', attemptCount: 2 },
-    { name: 'gemini-1.5-flash', attemptCount: 2 },
-    { name: 'gemini-1.5-pro', attemptCount: 1 }
-  ];
-
-  let lastError = null;
-
-  for (const modelConfig of modelsToTry) {
-    for (let attempt = 1; attempt <= modelConfig.attemptCount; attempt++) {
-      try {
-        console.log(`[GEMINI RETRY TRACE] Trying model ${modelConfig.name} (Attempt ${attempt}/${modelConfig.attemptCount})`);
-        const model = genAI.getGenerativeModel({ 
-          model: modelConfig.name,
-          systemInstruction: systemInstruction
-        });
-
-        const chat = model.startChat({ history: history });
-        const result = await chat.sendMessageStream(parts);
-        return result;
-      } catch (err) {
-        console.error(`[GEMINI RETRY WARNING] Failed with ${modelConfig.name} on attempt ${attempt}:`, err.message);
-        lastError = err;
-        await new Promise(r => setTimeout(r, 300));
-      }
-    }
-  }
-
-  throw lastError || new Error("All Gemini models and retry attempts exhausted.");
-}
-
 export default async function handler(req, res) {
   const startTime = Date.now();
   const requestId = `req-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -171,7 +139,7 @@ export default async function handler(req, res) {
     console.warn(`[${requestId}] GEMINI_API_KEY is missing on the server.`);
     return res.status(200).json({
       success: false,
-      message: "I couldn't reach the AI service. Please try again."
+      message: "AI Error: GEMINI_API_KEY is not configured in the environment."
     });
   }
 
@@ -184,51 +152,13 @@ export default async function handler(req, res) {
     }
 
     const systemInstruction = getSystemInstruction(context);
-    const genAI = new GoogleGenerativeAI(apiKey);
 
-    const formattedHistory = [];
-    history.forEach(msg => {
-      if (msg.role && msg.content && msg.type !== 'setup' && msg.type !== 'error') {
-        formattedHistory.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content || ' ' }]
-        });
-      }
-    });
-
-    // Ensure the first message in the chat history starts with role 'user'
-    while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-      formattedHistory.shift();
-    }
-
-    const parts = [];
-    if (rawMessage) {
-      parts.push({ text: rawMessage });
-    } else {
-      parts.push({ text: 'Analyze the attached details.' });
-    }
-
-    if (attachments && attachments.length > 0) {
-      attachments.forEach(file => {
-        if (file.inlineData) {
-          parts.push({
-            inlineData: {
-              data: file.inlineData.data,
-              mimeType: file.type
-            }
-          });
-        } else if (file.textData) {
-          parts.push({ text: file.textData });
-        }
-      });
-    }
-
-    console.log(`[${requestId}] Fetching reply from Gemini with retries...`);
-    const result = await startGeminiStreamWithRetry(genAI, systemInstruction, formattedHistory, parts);
+    console.log(`[${requestId}] Routing serverless request through AI Service Layer...`);
+    const stream = generateContentStream(apiKey, rawMessage, history, systemInstruction, attachments);
 
     let replyText = '';
-    for await (const chunk of result.stream) {
-      replyText += chunk.text();
+    for await (const chunk of stream) {
+      replyText += chunk;
     }
 
     const executionTime = Date.now() - startTime;

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContentStream } from './server/aiService.js';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
@@ -238,39 +238,6 @@ If your response mentions any of the following operational flows, you MUST appen
 - Opening the BI Analytics Dashboard: [Action: Open Analytics]`;
 }
 
-async function startGeminiStreamWithRetry(genAI, systemInstruction, history, parts) {
-  const modelsToTry = [
-    { name: 'gemini-2.0-flash', attemptCount: 2 },
-    { name: 'gemini-1.5-flash', attemptCount: 2 },
-    { name: 'gemini-1.5-pro', attemptCount: 1 }
-  ];
-
-  let lastError = null;
-
-  for (const modelConfig of modelsToTry) {
-    for (let attempt = 1; attempt <= modelConfig.attemptCount; attempt++) {
-      try {
-        console.log(`[GEMINI RETRY TRACE] Trying model ${modelConfig.name} (Attempt ${attempt}/${modelConfig.attemptCount})`);
-        const model = genAI.getGenerativeModel({ 
-          model: modelConfig.name,
-          systemInstruction: systemInstruction
-        });
-
-        // Start chat session
-        const chat = model.startChat({ history: history });
-        const result = await chat.sendMessageStream(parts);
-        return result;
-      } catch (err) {
-        console.error(`[GEMINI RETRY WARNING] Failed with ${modelConfig.name} on attempt ${attempt}:`, err.message);
-        lastError = err;
-        await new Promise(r => setTimeout(r, 300));
-      }
-    }
-  }
-
-  throw lastError || new Error("All Gemini models and retry attempts exhausted.");
-}
-
 app.post('/api/chat', async (req, res) => {
   console.log('[BACKEND TRACE] Streaming request received at /api/chat');
   
@@ -284,7 +251,7 @@ app.post('/api/chat', async (req, res) => {
 
   if (!apiKey) {
     console.warn('[BACKEND WARNING] GEMINI_API_KEY is missing.');
-    res.write("I couldn't reach the AI service. Please try again.");
+    res.write("AI Error: GEMINI_API_KEY is not configured in the environment.");
     res.end();
     return;
   }
@@ -295,57 +262,18 @@ app.post('/api/chat', async (req, res) => {
 
     await loadMeetingsContext(context);
     const systemInstruction = getSystemInstruction(context);
-    const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Format history for Gemini
-    const formattedHistory = [];
-    history.forEach(msg => {
-      if (msg.role && msg.content && msg.type !== 'setup' && msg.type !== 'error') {
-        formattedHistory.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content || ' ' }]
-        });
-      }
-    });
-
-    // Ensure the first message in the chat history starts with role 'user'
-    while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-      formattedHistory.shift();
-    }
-
-    const parts = [];
-    if (prompt) {
-      parts.push({ text: prompt });
-    } else {
-      parts.push({ text: 'Analyze the attached details.' });
-    }
-
-    if (attachments && attachments.length > 0) {
-      attachments.forEach(file => {
-        if (file.inlineData) {
-          parts.push({
-            inlineData: {
-              data: file.inlineData.data,
-              mimeType: file.type
-            }
-          });
-        } else if (file.textData) {
-          parts.push({ text: file.textData });
-        }
-      });
-    }
-
-    console.log('[BACKEND TRACE] Fetching streaming reply from Gemini with retries...');
-    const result = await startGeminiStreamWithRetry(genAI, systemInstruction, formattedHistory, parts);
+    console.log('[BACKEND TRACE] Routing streaming request through AI Service Layer...');
+    const stream = generateContentStream(apiKey, prompt, history, systemInstruction, attachments);
     
-    for await (const chunk of result.stream) {
-      res.write(chunk.text());
+    for await (const chunk of stream) {
+      res.write(chunk);
     }
     
     console.log('[BACKEND TRACE] Stream completed successfully.');
     res.end();
   } catch (error) {
-    console.error('[BACKEND ERROR] All streaming retries failed:', error.stack || error);
+    console.error('[BACKEND ERROR] AI Service streaming failed:', error.stack || error);
     res.write(`AI Error: ${error.message}. Please check your connection or key.`);
     res.end();
   }
