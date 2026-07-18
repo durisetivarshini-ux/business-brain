@@ -284,28 +284,85 @@ export function WorkspaceProvider({ children }) {
 
   useEffect(() => {
     const userId = user?.uid || 'guest';
+    
+    // 1. Initial Load from LocalStorage
     const configRaw = localStorage.getItem(`company_details_${userId}`);
+    let localConfig = defaultWorkspaceConfig;
     if (configRaw) {
       try {
-        setWorkspaceConfig(JSON.parse(configRaw));
+        localConfig = JSON.parse(configRaw);
       } catch (err) {
-        console.error("Error parsing workspace config", err);
-        setWorkspaceConfig(defaultWorkspaceConfig);
+        console.error("Error parsing local workspace config", err);
       }
-    } else {
-      setWorkspaceConfig(defaultWorkspaceConfig);
     }
+    setWorkspaceConfig(localConfig);
 
     const dataRaw = localStorage.getItem(`company_business_data_${userId}`);
+    let localData = defaultBusinessData;
     if (dataRaw) {
       try {
-        setBusinessData(JSON.parse(dataRaw));
+        localData = JSON.parse(dataRaw);
       } catch (err) {
-        console.error("Error parsing business data", err);
-        setBusinessData(defaultBusinessData);
+        console.error("Error parsing local business data", err);
       }
-    } else {
-      setBusinessData(defaultBusinessData);
+    }
+    setBusinessData(localData);
+
+    // 2. Fetch/Restore from Backend on Authentication
+    if (user && user.uid) {
+      fetch(`/api/user/load-workspace?userId=${user.uid}&email=${user.email || ''}`)
+        .then(res => {
+          if (res.status === 200) {
+            return res.json();
+          } else if (res.status === 404) {
+            // First time login: Migrate local guest configurations to account holder profile on server
+            const guestConfigRaw = localStorage.getItem('company_details_guest');
+            const guestDataRaw = localStorage.getItem('company_business_data_guest');
+            
+            let guestConfig = localConfig;
+            let guestData = localData;
+
+            try {
+              if (guestConfigRaw) guestConfig = JSON.parse(guestConfigRaw);
+              if (guestDataRaw) guestData = JSON.parse(guestDataRaw);
+            } catch (e) {}
+
+            // Save to current user's local storage
+            localStorage.setItem(`company_details_${user.uid}`, JSON.stringify(guestConfig));
+            localStorage.setItem(`company_business_data_${user.uid}`, JSON.stringify(guestData));
+            
+            // Backup guest data to account holder database
+            fetch('/api/user/save-workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.uid,
+                email: user.email,
+                workspaceConfig: guestConfig,
+                businessData: guestData
+              })
+            }).catch(e => console.error("Error backing up guest workspace:", e));
+
+            // Clean up guest local keys
+            localStorage.removeItem('company_details_guest');
+            localStorage.removeItem('company_business_data_guest');
+
+            setWorkspaceConfig(guestConfig);
+            setBusinessData(guestData);
+            return null;
+          }
+          return null;
+        })
+        .then(data => {
+          if (data && data.success) {
+            console.log("[Workspace Sync] Workspace restored from backend database.");
+            setWorkspaceConfig(data.workspaceConfig);
+            setBusinessData(data.businessData);
+            localStorage.setItem(`company_details_${user.uid}`, JSON.stringify(data.workspaceConfig));
+            localStorage.setItem(`company_business_data_${user.uid}`, JSON.stringify(data.businessData));
+          }
+        })
+        .catch(err => console.error("[Workspace Sync Error] Failed to load server workspace:", err));
     }
   }, [user]);
 
@@ -314,6 +371,20 @@ export function WorkspaceProvider({ children }) {
     const updated = { ...workspaceConfig, ...newConfig };
     setWorkspaceConfig(updated);
     localStorage.setItem(`company_details_${userId}`, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      // Sync update with backend
+      fetch('/api/user/save-workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          workspaceConfig: updated,
+          businessData
+        })
+      }).catch(e => console.error("[Workspace Sync Error] Failed to save config to server:", e));
+    }
   };
 
   const getCurrencySymbol = () => {
@@ -335,6 +406,20 @@ export function WorkspaceProvider({ children }) {
     const userId = user?.uid || 'guest';
     setBusinessData(updatedData);
     localStorage.setItem(`company_business_data_${userId}`, JSON.stringify(updatedData));
+
+    if (user && user.uid) {
+      // Sync update with backend
+      fetch('/api/user/save-workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          workspaceConfig,
+          businessData: updatedData
+        })
+      }).catch(e => console.error("[Workspace Sync Error] Failed to save data to server:", e));
+    }
   };
 
   const populateSandboxData = () => {

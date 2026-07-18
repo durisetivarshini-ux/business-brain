@@ -412,7 +412,53 @@ app.post('/api/ai/chat', async (req, res) => {
 // --- SMTP & CLOUD API EMAILS SCHEDULER & DISPATCH ENGINE ---
 let smtpTransporter = null;
 let dbClient = null;
-const useMongoDB = !!process.env.MONGODB_URI;
+const WORKSPACES_FILE = path.join(__dirname, 'user_workspaces.json');
+
+async function getWorkspaces() {
+  if (useMongoDB) {
+    try {
+      if (!dbClient) {
+        dbClient = new MongoClient(process.env.MONGODB_URI);
+        await dbClient.connect();
+      }
+      const db = dbClient.db(process.env.MONGODB_DB || 'business_brain');
+      return await db.collection('workspaces').find({}).toArray();
+    } catch (err) {
+      console.error('[DATABASE ERROR] Failed to fetch workspaces from MongoDB:', err.message);
+    }
+  }
+
+  try {
+    const data = await fs.readFile(WORKSPACES_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      await fs.writeFile(WORKSPACES_FILE, JSON.stringify([], null, 2));
+      return [];
+    }
+    return [];
+  }
+}
+
+async function saveWorkspaces(workspaces) {
+  if (useMongoDB) {
+    try {
+      if (!dbClient) {
+        dbClient = new MongoClient(process.env.MONGODB_URI);
+        await dbClient.connect();
+      }
+      const db = dbClient.db(process.env.MONGODB_DB || 'business_brain');
+      await db.collection('workspaces').deleteMany({});
+      if (workspaces.length > 0) {
+        await db.collection('workspaces').insertMany(workspaces);
+      }
+      return;
+    } catch (err) {
+      console.error('[DATABASE ERROR] Failed to save workspaces to MongoDB:', err.message);
+    }
+  }
+  await fs.writeFile(WORKSPACES_FILE, JSON.stringify(workspaces, null, 2));
+}
 
 async function getMeetings() {
   if (useMongoDB) {
@@ -1006,6 +1052,64 @@ app.post('/api/meetings/test-email', async (req, res) => {
   } catch (err) {
     console.error('[SMTP TEST ERROR] Direct connection test failed:', err);
     res.status(500).json({ success: false, message: `SMTP connection verification failed: ${err.message}` });
+  }
+});
+
+// Workspace Sync Endpoints
+app.post('/api/user/save-workspace', async (req, res) => {
+  const { userId, email, workspaceConfig, businessData } = req.body;
+  if (!userId || !email) {
+    return res.status(400).json({ success: false, message: 'Missing parameters.' });
+  }
+
+  try {
+    const workspaces = await getWorkspaces();
+    const cleanId = String(userId);
+    const existingIdx = workspaces.findIndex(w => String(w.userId) === cleanId || w.email === email);
+
+    const record = {
+      userId: cleanId,
+      email,
+      workspaceConfig: workspaceConfig || {},
+      businessData: businessData || {},
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingIdx !== -1) {
+      workspaces[existingIdx] = record;
+    } else {
+      workspaces.push(record);
+    }
+
+    await saveWorkspaces(workspaces);
+    res.json({ success: true, message: 'Workspace synced successfully.' });
+  } catch (err) {
+    console.error('[WORKSPACE SYNC ERROR]', err);
+    res.status(500).json({ success: false, message: 'Failed to sync workspace.' });
+  }
+});
+
+app.get('/api/user/load-workspace', async (req, res) => {
+  const { userId, email } = req.query;
+  if (!userId && !email) {
+    return res.status(400).json({ success: false, message: 'Missing parameters.' });
+  }
+
+  try {
+    const workspaces = await getWorkspaces();
+    const record = workspaces.find(w => String(w.userId) === String(userId) || w.email === email);
+    if (!record) {
+      return res.status(404).json({ success: false, message: 'No saved workspace found.' });
+    }
+
+    res.json({
+      success: true,
+      workspaceConfig: record.workspaceConfig,
+      businessData: record.businessData
+    });
+  } catch (err) {
+    console.error('[WORKSPACE LOAD ERROR]', err);
+    res.status(500).json({ success: false, message: 'Failed to load workspace.' });
   }
 });
 
