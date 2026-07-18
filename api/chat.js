@@ -233,7 +233,7 @@ export default async function handler(req, res) {
     console.error(`[${requestId}] serverless request failed:`, error.stack || error);
     return res.status(200).json({
       success: false,
-      message: "I couldn't reach the AI service. Please try again."
+      message: `AI Error: ${error.message}. Please check your connection or key.`
     });
   }
 }

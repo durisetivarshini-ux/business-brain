@@ -341,7 +341,7 @@ app.post('/api/chat', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('[BACKEND ERROR] All streaming retries failed:', error.stack || error);
-    res.write("I couldn't reach the AI service. Please try again.");
+    res.write(`AI Error: ${error.message}. Please check your connection or key.`);
     res.end();
   }
 });
@@ -412,6 +412,7 @@ app.post('/api/ai/chat', async (req, res) => {
 // --- SMTP & CLOUD API EMAILS SCHEDULER & DISPATCH ENGINE ---
 let smtpTransporter = null;
 let dbClient = null;
+const useMongoDB = !!process.env.MONGODB_URI;
 const WORKSPACES_FILE = path.join(__dirname, 'user_workspaces.json');
 
 async function getWorkspaces() {

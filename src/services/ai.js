@@ -1,4 +1,5 @@
 // ── Secure Backend AI Service ──────────────────────────────────────────────
+import { auth } from '../firebase/firebase';
 
 function getActiveModuleFromPath(path) {
   if (path.includes('/finance')) return 'Finance';
@@ -18,7 +19,7 @@ function getActiveModuleFromPath(path) {
 }
 
 export async function generateAIResponse(prompt, history = [], attachments = [], abortSignal) {
-  const userId = 'guest'; 
+  const userId = auth?.currentUser?.uid || 'guest'; 
   const configRaw = localStorage.getItem(`company_details_${userId}`);
   let context = {};
   if (configRaw) {
