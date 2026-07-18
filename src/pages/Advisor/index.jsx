@@ -139,6 +139,52 @@ function formatReportHTML(messages, userProfile, config) {
 </html>`;
 }
 
+export function cleanAIReply(text = "") {
+  let cleaned = text.trim();
+
+  // Strip possible markdown json formatting wrapper
+  if (cleaned.startsWith("```json") && cleaned.endsWith("```")) {
+    cleaned = cleaned.substring(7, cleaned.length - 3).trim();
+  } else if (cleaned.startsWith("```") && cleaned.endsWith("```")) {
+    cleaned = cleaned.substring(3, cleaned.length - 3).trim();
+  }
+
+  // If it's a complete JSON block
+  if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.reply) return parsed.reply;
+        if (parsed.message) return parsed.message;
+      }
+    } catch (e) {
+      // Not valid JSON yet
+    }
+  }
+
+  // Handle streaming JSON patterns dynamically (e.g. starts with {"success":true,"reply":" or {"reply":" )
+  const jsonPrefixRegex = /^\{\s*"(success|reply|message)"\s*:\s*(true|"[^"]*")\s*,\s*"(reply|message)"\s*:\s*"/i;
+  const match = cleaned.match(jsonPrefixRegex);
+  if (match) {
+    cleaned = cleaned.substring(match[0].length);
+    if (cleaned.endsWith('"}')) {
+      cleaned = cleaned.slice(0, -2);
+    } else if (cleaned.endsWith('"} }')) {
+      cleaned = cleaned.slice(0, -4);
+    } else if (cleaned.endsWith('"')) {
+      cleaned = cleaned.slice(0, -1);
+    }
+    // Unescape common JSON characters
+    cleaned = cleaned
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'")
+      .replace(/\\t/g, '\t');
+  }
+
+  return cleaned;
+}
+
 export function AdvisorPage() {
   const { workspaceConfig: config, businessData } = useWorkspace();
   const { user } = useAuth();
@@ -257,13 +303,16 @@ Would you like me to run a SWOT analysis, audit cost structures, or run a decisi
       
       setMessages(prev => [...prev, { role: 'ai', content: '' }]);
       
+      let fullContent = '';
       for await (const chunk of stream) {
         const textChunk = typeof chunk.text === 'function' ? chunk.text() : chunk;
+        fullContent += textChunk;
+        const cleaned = cleanAIReply(fullContent);
         setMessages(prev => {
           const next = [...prev];
           const last = next[next.length - 1];
           if (last && last.role === 'ai') {
-            last.content += textChunk;
+            last.content = cleaned;
           }
           return next;
         });
