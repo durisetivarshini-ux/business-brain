@@ -196,6 +196,11 @@ export default async function handler(req, res) {
       }
     });
 
+    // Ensure the first message in the chat history starts with role 'user'
+    while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+      formattedHistory.shift();
+    }
+
     const parts = [];
     if (rawMessage) {
       parts.push({ text: rawMessage });
